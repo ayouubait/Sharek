@@ -520,7 +520,7 @@ export default function Profil() {
                     {kIndexBreakdown ? kIndexBreakdown.kIndex.toFixed(1) : '0.0'}
                   </p>
                   <p className="text-xs text-white/80 mt-1.5">
-                    Indice d'impact inspiré du H-index — 5 dimensions pondérées
+                    Indice d'impact basé sur 5 dimensions pondérées
                   </p>
                 </div>
               </div>
@@ -612,7 +612,7 @@ export default function Profil() {
               </div>
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3 mt-4">
                 {[
-                  { label: 'Publishing (H-index)', value: kIndexBreakdown.publishingDim, weight: 65, color: '#0d9488', icon: 'ri-file-text-line', desc: 'H-index des ressources (vues + DL×2 + comm.×3)' },
+                  { label: 'Publication', value: kIndexBreakdown.publishingDim, weight: 65, color: '#0d9488', icon: 'ri-file-text-line', desc: 'Score des ressources (vues + DL×2 + comm.×3)' },
                   { label: 'Reviews', value: kIndexBreakdown.reviewDim, weight: 20, color: '#2563eb', icon: 'ri-team-line', desc: 'Peer reviews complétées + en cours' },
                   { label: 'Engagement', value: kIndexBreakdown.engagementDim, weight: 10, color: '#7c3aed', icon: 'ri-chat-3-line', desc: 'Commentaires + likes donnés / reçus' },
                   { label: 'Reach', value: kIndexBreakdown.reachDim, weight: 3, color: '#f59e0b', icon: 'ri-broadcast-line', desc: 'Vues moyennes par ressource' },
@@ -647,7 +647,7 @@ export default function Profil() {
               </div>
               <div className="mt-4 pt-3 border-t border-slate-100 dark:border-slate-700/50 flex items-center justify-between">
                 <span className="text-xs text-slate-500 dark:text-slate-400">
-                  K-index final (H-index + bonus)
+                  K-index final
                 </span>
                 <span className="text-xl font-bold text-rose-600 dark:text-rose-400 tabular-nums">
                   {kIndexBreakdown.kIndex.toFixed(1)}

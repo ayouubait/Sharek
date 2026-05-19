@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import Footer from '@/components/layout/Footer';
+import logoUrl from '@/assets/logo.webp';
 
 export default function SignupPage() {
   const [name, setName] = useState('');
@@ -48,9 +49,7 @@ export default function SignupPage() {
       <div className="min-h-[100dvh] bg-slate-50 flex flex-col">
         <div className="flex-1 flex items-center justify-center px-4">
           <div className="w-full max-w-md text-center">
-            <div className="w-14 h-14 rounded-xl bg-sharek-600 flex items-center justify-center mx-auto mb-4">
-              <span className="text-white font-bold text-xl">SK</span>
-            </div>
+            <img src={logoUrl} alt="ShareK" className="h-20 w-auto object-contain mx-auto mb-4" />
             <div className="bg-white rounded-xl border border-slate-200 p-6 shadow-sm">
               <div className="w-12 h-12 rounded-full bg-sharek-50 flex items-center justify-center mx-auto mb-4">
                 <i className="ri-check-line text-2xl text-sharek-600"></i>
@@ -79,9 +78,7 @@ export default function SignupPage() {
         <div className="w-full max-w-md">
           {/* Logo */}
           <div className="text-center mb-8">
-            <div className="w-14 h-14 rounded-xl bg-sharek-600 flex items-center justify-center mx-auto mb-4">
-              <span className="text-white font-bold text-xl">SK</span>
-            </div>
+            <img src={logoUrl} alt="ShareK" className="h-20 w-auto object-contain mx-auto mb-4" />
             <h1 className="text-2xl font-bold text-slate-800">Rejoindre ShareK</h1>
             <p className="text-sm text-slate-500 mt-1">Créez votre compte enseignant</p>
           </div>

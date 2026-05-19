@@ -361,6 +361,7 @@ export default function ResourceAdd() {
         unit: formData.unit,
         type: formData.type,
         type_label: typeLabelMap[formData.type] || formData.type,
+        subject: user?.specialty || null,
         objectives: formData.objectives.trim(),
         competencies: formData.competencies.trim(),
         duration: formData.duration,

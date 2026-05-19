@@ -4,10 +4,10 @@ export default function Footer() {
       <div className="max-w-7xl mx-auto px-4 lg:px-8 xl:px-12 py-4 md:py-5">
         <div className="flex flex-col sm:flex-row items-center justify-between gap-2 md:gap-3">
           <p className="text-[11px] md:text-xs text-slate-400 dark:text-slate-500">
-            &copy; {new Date().getFullYear()} ShareK — Tous droits réservés
+            &copy; {new Date().getFullYear()} ShareK - Tous droits réservés
           </p>
           <p className="text-[11px] md:text-xs text-slate-400 dark:text-slate-500 text-center sm:text-right">
-            Développé par l&apos;équipe ERIPDS, ENS Tétouan, UAE — Maroc
+            Développé par l&apos;équipe ERIPDS, ENS Tétouan, UAE - Maroc
           </p>
         </div>
       </div>

@@ -3,6 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/contexts/AuthContext';
 import Footer from '@/components/layout/Footer';
+import logoUrl from '@/assets/logo.webp';
 
 export default function LoginPage() {
   const [email, setEmail] = useState('');
@@ -70,9 +71,7 @@ export default function LoginPage() {
         <div className="w-full max-w-md">
           {/* Logo */}
           <div className="text-center mb-8">
-            <div className="w-14 h-14 rounded-xl bg-sharek-600 flex items-center justify-center mx-auto mb-4">
-              <span className="text-white font-bold text-xl">SK</span>
-            </div>
+            <img src={logoUrl} alt="ShareK" className="h-20 w-auto object-contain mx-auto mb-4" />
             <h1 className="text-2xl font-bold text-slate-800">Bienvenue sur ShareK</h1>
             <p className="text-sm text-slate-500 mt-1">Connectez-vous à votre compte enseignant</p>
           </div>

@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
+import logoUrl from '@/assets/logo.webp';
 
 interface SidebarProps {
   mobileOpen: boolean;
@@ -69,15 +70,9 @@ export default function Sidebar({ mobileOpen, onClose }: SidebarProps) {
         }`}
       >
         {/* Logo */}
-        <div className="h-16 flex items-center px-6 border-b border-slate-100 dark:border-slate-700">
-          <Link to="/" className="flex items-center gap-3" onClick={onClose}>
-            <div className="w-9 h-9 rounded-lg bg-sharek-600 flex items-center justify-center">
-              <span className="text-white font-bold text-sm">SK</span>
-            </div>
-            <div className="flex flex-col">
-              <span className="font-bold text-slate-800 dark:text-slate-100 text-base leading-tight">ShareK</span>
-              <span className="text-xs text-slate-400 dark:text-slate-500 leading-tight">شارك</span>
-            </div>
+        <div className="h-16 flex items-center justify-center px-4 border-b border-slate-100 dark:border-slate-700">
+          <Link to="/" className="flex items-center" onClick={onClose}>
+            <img src={logoUrl} alt="ShareK" className="h-12 w-auto object-contain" />
           </Link>
         </div>
 

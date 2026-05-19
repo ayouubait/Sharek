@@ -20,12 +20,12 @@ interface AuthContextType {
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 const STORAGE_KEY = 'sharek-auth-user';
 
-function extractUser(rawUser: { id: string; email?: string | null; user_metadata?: Record<string, unknown> } | null, profile?: { role?: string; specialty?: string } | null): AuthUser | null {
+function extractUser(rawUser: { id: string; email?: string | null; user_metadata?: Record<string, unknown> } | null, profile?: { name?: string; role?: string; specialty?: string } | null): AuthUser | null {
   if (!rawUser) return null;
   return {
     id: rawUser.id,
     email: rawUser.email || '',
-    name: (rawUser.user_metadata?.name as string) || rawUser.email?.split('@')[0] || '',
+    name: profile?.name || (rawUser.user_metadata?.name as string) || rawUser.email?.split('@')[0] || '',
     role: profile?.role,
     specialty: profile?.specialty,
   };
@@ -44,20 +44,24 @@ function readUserFromStorage(): AuthUser | null {
   return null;
 }
 
-async function fetchUserProfileWithTimeout(userId: string): Promise<{ role?: string; specialty?: string } | undefined> {
-  try {
-    const { data } = await withTimeout(
-      supabase
-        .from('profiles')
-        .select('role, specialty')
-        .eq('id', userId)
-        .maybeSingle(),
-      5000
-    );
-    return data ? { role: data.role, specialty: data.specialty } : undefined;
-  } catch {
-    return undefined;
+async function fetchUserProfileWithTimeout(userId: string): Promise<{ name?: string; role?: string; specialty?: string } | undefined> {
+  // Retry once on failure, with longer timeouts (15s + 15s) to survive flaky network or cold queries
+  for (let attempt = 0; attempt < 2; attempt++) {
+    try {
+      const { data } = await withTimeout(
+        supabase
+          .from('profiles')
+          .select('name, role, specialty')
+          .eq('id', userId)
+          .maybeSingle(),
+        15000
+      );
+      if (data) return { name: data.name, role: data.role, specialty: data.specialty };
+    } catch {
+      // try again
+    }
   }
+  return undefined;
 }
 
 function withTimeout<T>(promise: Promise<T>, ms: number): Promise<T> {
@@ -105,9 +109,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       try {
         const { data: { session } } = await withTimeout(supabase.auth.getSession(), 5000);
         if (!cancelled && session?.user) {
-          const role = await fetchUserProfileWithTimeout(session.user.id);
+          const profile = await fetchUserProfileWithTimeout(session.user.id);
           if (!cancelled) {
-            setUser(extractUser(session.user, role));
+            setUser((prev) => {
+              const next = extractUser(session.user, profile);
+              // If profile fetch failed, keep previously cached name/specialty/role if they look valid
+              if (!profile && prev && next && prev.id === next.id && prev.name && !prev.name.includes('@')) {
+                return { ...next, name: prev.name, specialty: prev.specialty, role: prev.role };
+              }
+              return next;
+            });
           }
         }
       } catch {
@@ -120,12 +131,21 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     init();
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
-      if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED' || event === 'USER_UPDATED') {
-        const role = session?.user ? await fetchUserProfileWithTimeout(session.user.id) : undefined;
-        setUser(extractUser(session?.user || null, role));
+      if (event === 'SIGNED_IN' || event === 'USER_UPDATED') {
+        const profile = session?.user ? await fetchUserProfileWithTimeout(session.user.id) : undefined;
+        setUser((prev) => {
+          const next = extractUser(session?.user || null, profile);
+          // If fetch failed (profile is undefined) and we already have a valid user, preserve it
+          if (!profile && prev && next && prev.id === next.id && prev.name && !prev.name.includes('@') && prev.name !== prev.email?.split('@')[0]) {
+            return { ...next, name: prev.name, specialty: prev.specialty, role: prev.role };
+          }
+          return next;
+        });
       } else if (event === 'SIGNED_OUT') {
         setUser(null);
       }
+      // TOKEN_REFRESHED is intentionally ignored: the session refresh doesn't change user identity,
+      // and refetching the profile here can fail silently and degrade the cached name/specialty.
     });
 
     return () => {
@@ -141,8 +161,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         60000
       );
       if (error) return { error: error.message };
-      const role = data.user ? await fetchUserProfileWithTimeout(data.user.id) : undefined;
-      const user = extractUser(data.user, role);
+      const profile = data.user ? await fetchUserProfileWithTimeout(data.user.id) : undefined;
+      const user = extractUser(data.user, profile);
       setUser(user);
       return { user };
     } catch {

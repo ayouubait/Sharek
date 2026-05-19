@@ -29,9 +29,9 @@ export default function ResourceTypeBadge({
 
   return (
     <span className={baseClasses}>
-      <div className={`flex items-center justify-center ${iconClassName || 'w-3 h-3'}`}>
+      <span className={`inline-flex items-center justify-center ${iconClassName || 'w-3 h-3'}`}>
         <i className={`${config.icon} ${iconClassName ? '' : 'text-[10px]'}`} />
-      </div>
+      </span>
       {config.label}
     </span>
   );

@@ -634,8 +634,7 @@ export default function EnseignantProfil() {
               </div>
 
               <p className="text-sm text-slate-600 dark:text-slate-300 mb-4 leading-relaxed">
-                Le <strong>K-index</strong> s'inspire du <strong>H-index</strong> des chercheurs.
-                Il mesure à la fois la <strong>quantité</strong> et la <strong>qualité</strong> de l'impact :
+                Le <strong>K-index</strong> mesure à la fois la <strong>quantité</strong> et la <strong>qualité</strong> de l'impact :
                 un enseignant avec un K-index de 3 a au moins 3 ressources dont chacune a accumulé
                 au moins 3 points d'impact (vues, téléchargements, commentaires).
                 Les peer reviews et l'engagement communautaire ajoutent un petit bonus décimal.
@@ -654,12 +653,12 @@ export default function EnseignantProfil() {
 
               <div className="space-y-3 mb-5">
                 <DimensionRow
-                  label="Publishing Impact (H-index)"
+                  label="Publication"
                   weight={65}
                   value={kIndexBreakdown.publishingDim}
                   icon="ri-file-upload-line"
                   color="bg-ocean-50 text-ocean-600"
-                  desc="H-index des ressources : max k tel que k ressources aient chacune ≥ k points d'impact (vues + DL×2 + comm.×3)"
+                  desc="Score des ressources : max k tel que k ressources aient chacune ≥ k points d'impact (vues + DL×2 + comm.×3)"
                 />
                 <DimensionRow
                   label="Peer Review Activity"
@@ -759,7 +758,7 @@ export default function EnseignantProfil() {
 
               <div className="grid grid-cols-1 sm:grid-cols-5 gap-3">
                 <MiniDimBar
-                  label="Publishing (H-index)"
+                  label="Publication"
                   weight={65}
                   value={kIndexBreakdown.publishingDim}
                   max={5}
