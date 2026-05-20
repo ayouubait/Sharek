@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
+import { logger } from '@/lib/logger';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/lib/supabase';
 import AvatarImage from '@/components/AvatarImage';
@@ -254,7 +255,7 @@ export default function AdminProfileDashboard({ profile }: { profile: ProfileDat
       builtActivity.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
       setActivities(builtActivity.slice(0, 10));
     } catch (err) {
-      console.error('Admin dashboard fetch error:', err);
+      logger.error('Admin dashboard fetch error:', err);
     } finally {
       setLoading(false);
     }
@@ -299,7 +300,7 @@ export default function AdminProfileDashboard({ profile }: { profile: ProfileDat
 
   return (
     <div className="space-y-6">
-      {/* ===== HEADER ADMIN — clean, no cover ===== */}
+      {/* ===== HEADER ADMIN - clean, no cover ===== */}
       <div className="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 shadow-soft p-4 sm:p-6">
         <div className="flex flex-col sm:flex-row sm:items-start gap-4 sm:gap-5">
           {/* Avatar */}
@@ -352,7 +353,7 @@ export default function AdminProfileDashboard({ profile }: { profile: ProfileDat
       {/* ===== STATS ROW ===== */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         {statCards.map((card) => (
-          <div key={card.label} className={`bg-white rounded-xl border ${card.border} p-5 shadow-soft`}>
+          <div key={card.label} className={`bg-white dark:bg-slate-800 rounded-xl border ${card.border} dark:border-slate-700 p-5 shadow-soft`}>
             <div className="flex items-center justify-between mb-3">
               <span className="text-xs font-medium text-slate-500 dark:text-slate-400">{card.label}</span>
               <div className={`w-8 h-8 rounded-lg ${card.bg} flex items-center justify-center ${card.color}`}>
@@ -369,7 +370,7 @@ export default function AdminProfileDashboard({ profile }: { profile: ProfileDat
 
       {/* ===== PRIORITÉS + ACTIVITÉ ===== */}
       <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
-        {/* Priorités — 2 cols */}
+        {/* Priorités - 2 cols */}
         <div className="lg:col-span-2 space-y-4">
           <div className="flex items-center justify-between">
             <h2 className="text-sm font-semibold text-slate-800 dark:text-slate-100 flex items-center gap-2">
@@ -397,7 +398,7 @@ export default function AdminProfileDashboard({ profile }: { profile: ProfileDat
                   <div
                     key={task.id}
                     onClick={() => navigate(task.actionLink)}
-                    className={`bg-white rounded-xl border ${cfg.border} p-4 shadow-soft cursor-pointer hover:shadow-card transition-all`}
+                    className={`bg-white dark:bg-slate-800 rounded-xl border ${cfg.border} dark:border-slate-700 p-4 shadow-soft cursor-pointer hover:shadow-card transition-all`}
                   >
                     <div className="flex items-start gap-3">
                       <div className={`w-9 h-9 rounded-lg ${cfg.iconBg} flex items-center justify-center ${cfg.text} flex-shrink-0`}>
@@ -448,7 +449,7 @@ export default function AdminProfileDashboard({ profile }: { profile: ProfileDat
           </div>
         </div>
 
-        {/* Activité — 3 cols */}
+        {/* Activité - 3 cols */}
         <div className="lg:col-span-3 space-y-4 min-w-0">
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
             <h2 className="text-sm font-semibold text-slate-800 dark:text-slate-100 flex items-center gap-2">

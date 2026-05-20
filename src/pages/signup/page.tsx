@@ -37,7 +37,7 @@ export default function SignupPage() {
     } else {
       setSuccess(true);
       if (!result.needsEmailConfirmation) {
-        // Auto-confirmed — redirect after a short delay
+        // Auto-confirmed - redirect after a short delay
         setTimeout(() => navigate('/'), 1500);
       }
       // If email confirmation needed, stay on success screen with message

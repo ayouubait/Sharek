@@ -1,4 +1,5 @@
 import { useState, useCallback } from 'react';
+import { logger } from '@/lib/logger';
 import { supabase } from '@/lib/supabase';
 import { useTranslation } from 'react-i18next';
 
@@ -90,7 +91,7 @@ export default function PlatformSettings({ settings, onChange }: PlatformSetting
       onChange();
       setTimeout(() => setSaved(false), 3000);
     } catch (err) {
-      console.error('Save platform settings error:', err);
+      logger.error('Save platform settings error:', err);
     } finally {
       setSaving(false);
     }

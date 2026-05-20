@@ -6,7 +6,7 @@ import { logger } from '@/lib/logger';
 const LEGACY_KEY = 'sharek-favorites';
 
 /**
- * useFavorites — hook centralisant les favoris d'un utilisateur.
+ * useFavorites - hook centralisant les favoris d'un utilisateur.
  *
  * - Source de vérité : table `public.favorites` (Supabase).
  * - Au premier load, migre automatiquement les anciennes entrées localStorage

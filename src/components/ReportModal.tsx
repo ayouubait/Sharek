@@ -37,7 +37,7 @@ export default function ReportModal({ resourceId, resourceTitle, userId, onClose
           user_id: userId,
           type: 'report',
           title: `Signalement : ${resourceTitle.slice(0, 80)}`,
-          message: `Motif : ${selectedLabel}${details ? ` — Détails : ${details}` : ''}`,
+          message: `Motif : ${selectedLabel}${details ? ` - Détails : ${details}` : ''}`,
           resource_id: resourceId,
           read: false,
         }),

@@ -12,11 +12,11 @@ export default function ReinitialiserMotDePasse() {
   const [validHash, setValidHash] = useState(true);
   const navigate = useNavigate();
 
-  // Supabase sends recovery tokens in the URL hash — check we have one
+  // Supabase sends recovery tokens in the URL hash - check we have one
   useEffect(() => {
     const hash = window.location.hash;
     if (!hash || !hash.includes('access_token')) {
-      // No token in URL — might be invalid or expired
+      // No token in URL - might be invalid or expired
       setValidHash(false);
     }
   }, []);

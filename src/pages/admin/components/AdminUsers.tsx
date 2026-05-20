@@ -1,7 +1,9 @@
 import { useState, useEffect, useCallback } from 'react';
+import { logger } from '@/lib/logger';
 import { Link } from 'react-router-dom';
 import { supabase } from '@/lib/supabase';
 import { withTimeout } from '@/lib/utils';
+import { useCategories } from '@/hooks/useCategories';
 
 interface UserRow {
   id: string;
@@ -42,7 +44,8 @@ export default function AdminUsers({ onCountsRefresh }: AdminUsersProps) {
 
   // Add user modal state
   const [addModalOpen, setAddModalOpen] = useState(false);
-  const [addForm, setAddForm] = useState({ name: '', email: '', password: '', role: 'teacher' });
+  const [addForm, setAddForm] = useState({ name: '', email: '', password: '', role: 'teacher', specialty: '' });
+  const { specialties } = useCategories();
   const [addLoading, setAddLoading] = useState(false);
   const [addError, setAddError] = useState<string | null>(null);
 
@@ -85,7 +88,7 @@ export default function AdminUsers({ onCountsRefresh }: AdminUsersProps) {
 
       setUsers(filtered);
     } catch (err) {
-      console.error('Users fetch error:', err);
+      logger.error('Users fetch error:', err);
       setToast({ type: 'error', message: 'Erreur lors du chargement des utilisateurs.' });
     } finally {
       setLoading(false);
@@ -121,7 +124,7 @@ export default function AdminUsers({ onCountsRefresh }: AdminUsersProps) {
       fetchUsers();
       onCountsRefresh();
     } catch (err) {
-      console.error('Ban error:', err);
+      logger.error('Ban error:', err);
       setToast({ type: 'error', message: 'Erreur lors de l\'action de bannissement.' });
     } finally {
       setActionLoading(false);
@@ -137,7 +140,7 @@ export default function AdminUsers({ onCountsRefresh }: AdminUsersProps) {
       fetchUsers();
       onCountsRefresh();
     } catch (err) {
-      console.error('Role change error:', err);
+      logger.error('Role change error:', err);
       setToast({ type: 'error', message: 'Erreur lors du changement de rôle.' });
     } finally {
       setActionLoading(false);
@@ -173,6 +176,7 @@ export default function AdminUsers({ onCountsRefresh }: AdminUsersProps) {
             password: addForm.password,
             name: addForm.name.trim(),
             role: addForm.role,
+            specialty: addForm.role === 'teacher' ? (addForm.specialty || null) : null,
           }),
         }
       );
@@ -184,11 +188,11 @@ export default function AdminUsers({ onCountsRefresh }: AdminUsersProps) {
 
       setToast({ type: 'success', message: `${addForm.name} a été créé avec succès.` });
       setAddModalOpen(false);
-      setAddForm({ name: '', email: '', password: '', role: 'teacher' });
+      setAddForm({ name: '', email: '', password: '', role: 'teacher', specialty: '' });
       fetchUsers();
       onCountsRefresh();
     } catch (err: any) {
-      console.error('Add user error:', err);
+      logger.error('Add user error:', err);
       setAddError(err?.message || 'Erreur lors de la création de l\'utilisateur.');
     } finally {
       setAddLoading(false);
@@ -275,7 +279,7 @@ export default function AdminUsers({ onCountsRefresh }: AdminUsersProps) {
       fetchUsers();
       onCountsRefresh();
     } catch (err: any) {
-      console.error('Edit user error:', err);
+      logger.error('Edit user error:', err);
       setEditError(err?.message || 'Erreur lors de la mise à jour du profil.');
     } finally {
       setEditLoading(false);
@@ -293,7 +297,7 @@ export default function AdminUsers({ onCountsRefresh }: AdminUsersProps) {
       setToast({ type: 'success', message: `Email de réinitialisation envoyé à ${email}.` });
       setTimeout(() => setResetSent(false), 4000);
     } catch (err: any) {
-      console.error('Reset password error:', err);
+      logger.error('Reset password error:', err);
       setToast({ type: 'error', message: err?.message || 'Erreur lors de l\'envoi de l\'email.' });
     } finally {
       setResetLoading(false);
@@ -598,13 +602,27 @@ export default function AdminUsers({ onCountsRefresh }: AdminUsersProps) {
               <div>
                 <select
                   value={addForm.role}
-                  onChange={(e) => setAddForm((prev) => ({ ...prev, role: e.target.value }))}
+                  onChange={(e) => setAddForm((prev) => ({ ...prev, role: e.target.value, specialty: e.target.value === 'admin' ? '' : prev.specialty }))}
                   className="w-full bg-white border border-slate-200 dark:border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-700 dark:text-slate-200 outline-none focus:border-sharek-400"
                 >
                   <option value="teacher">Enseignant / Reviewer</option>
                   <option value="admin">Administrateur</option>
                 </select>
               </div>
+              {addForm.role === 'teacher' && (
+                <div>
+                  <select
+                    value={addForm.specialty}
+                    onChange={(e) => setAddForm((prev) => ({ ...prev, specialty: e.target.value }))}
+                    className="w-full bg-white border border-slate-200 dark:border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-700 dark:text-slate-200 outline-none focus:border-sharek-400"
+                  >
+                    <option value="">Discipline (optionnel)</option>
+                    {specialties.map((s) => (
+                      <option key={s.slug} value={s.name}>{s.name}</option>
+                    ))}
+                  </select>
+                </div>
+              )}
             </div>
 
             {addError && (
@@ -615,7 +633,7 @@ export default function AdminUsers({ onCountsRefresh }: AdminUsersProps) {
 
             <div className="flex gap-3 justify-end mt-5">
               <button
-                onClick={() => { setAddModalOpen(false); setAddError(null); setAddForm({ name: '', email: '', password: '', role: 'teacher' }); }}
+                onClick={() => { setAddModalOpen(false); setAddError(null); setAddForm({ name: '', email: '', password: '', role: 'teacher', specialty: '' }); }}
                 className="px-4 py-2 rounded-lg text-sm font-medium text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700/30 dark:bg-slate-700/30 transition-colors"
               >
                 Annuler

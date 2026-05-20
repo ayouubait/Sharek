@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
+import { logger } from '@/lib/logger';
 import { getTypeConfig } from '@/lib/typeConfig';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/lib/supabase';
@@ -189,7 +190,7 @@ export default function TeacherActivityFeed({ userId, resources, reviews }: Teac
       built.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
       setActivities(built.slice(0, 25));
     } catch (err) {
-      console.error('Activity feed fetch error:', err);
+      logger.error('Activity feed fetch error:', err);
     } finally {
       setLoading(false);
     }

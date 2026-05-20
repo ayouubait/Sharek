@@ -1,4 +1,5 @@
 import { supabase } from './supabase';
+import { withTimeout } from './utils';
 
 export interface ProfileInfo {
   id: string;
@@ -30,17 +31,22 @@ export async function fetchProfilesMap(ids: string[]): Promise<Record<string, Pr
   const uniqueIds = [...new Set(ids)].filter(Boolean);
   if (uniqueIds.length === 0) return {};
 
-  try {
-    const { data, error } = await supabase
-      .from('profiles')
-      .select('id, name, initials, color, avatar_url, institution, city')
-      .in('id', uniqueIds);
-
-    if (error || !data) return {};
-    return buildProfileMap(data);
-  } catch {
-    return {};
+  // Retry up to 2 times with 10s timeout - Supabase can be slow on cold queries
+  for (let attempt = 0; attempt < 2; attempt++) {
+    try {
+      const { data, error } = await withTimeout(
+        supabase
+          .from('profiles')
+          .select('id, name, initials, color, avatar_url, institution, city')
+          .in('id', uniqueIds),
+        10000
+      );
+      if (!error && data) return buildProfileMap(data);
+    } catch {
+      // try again
+    }
   }
+  return {};
 }
 
 export function getDisplayProfile(

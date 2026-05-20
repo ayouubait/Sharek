@@ -111,7 +111,7 @@ export default function Parametres() {
         setSettings(loaded);
         // Sync i18n
         i18n.changeLanguage(loaded.language);
-        // Note: theme is managed by ThemeContext via localStorage — we load the DB value
+        // Note: theme is managed by ThemeContext via localStorage - we load the DB value
         // into settings state so the UI reflects it, but we don't override the active context.
         // The user must click 'Enregistrer' to persist their choice.
       } else {
@@ -242,10 +242,10 @@ export default function Parametres() {
     return (
       <MainLayout>
         <div className="flex items-center justify-center py-24">
-          <div className="w-5 h-5 flex items-center justify-center text-slate-400 dark:text-slate-500 mr-2">
+          <div className="w-5 h-5 flex items-center justify-center text-slate-400 dark:text-slate-500 dark:text-slate-400 mr-2">
             <i className="ri-loader-4-line animate-spin"></i>
           </div>
-          <p className="text-sm text-slate-400 dark:text-slate-500">Chargement...</p>
+          <p className="text-sm text-slate-400 dark:text-slate-500 dark:text-slate-400">Chargement...</p>
         </div>
       </MainLayout>
     );
@@ -298,7 +298,7 @@ export default function Parametres() {
                 className={`flex-shrink-0 flex items-center gap-2 lg:gap-3 px-3 lg:px-4 py-3 text-sm font-medium transition-colors text-left whitespace-nowrap ${
                   activeTab === tab.key
                     ? isAdmin ? 'bg-violet-50 dark:bg-violet-900/20 text-violet-700 dark:text-violet-400 lg:border-l-2 border-b-2 lg:border-b-0 border-violet-600' : 'bg-sharek-50 dark:bg-sharek-900/20 text-sharek-700 dark:text-sharek-400 lg:border-l-2 border-b-2 lg:border-b-0 border-sharek-600'
-                    : 'text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800'
+                    : 'text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:bg-slate-800/50 dark:hover:bg-slate-800'
                 }`}
               >
                 <div className="w-5 h-5 flex items-center justify-center relative">
@@ -329,7 +329,7 @@ export default function Parametres() {
                     <div className="w-3 h-3 flex items-center justify-center">
                       <i className="ri-shield-keyhole-line text-[10px]"></i>
                     </div>
-                    Mode administrateur — certains champs sont masqués
+                    Mode administrateur - certains champs sont masqués
                   </div>
                 )}
               </div>
@@ -361,7 +361,7 @@ export default function Parametres() {
                       disabled
                       className="w-full px-3 py-2.5 bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-sm text-slate-500 dark:text-slate-400 cursor-not-allowed"
                     />
-                    <p className="text-[11px] text-slate-400 dark:text-slate-500 mt-1">L'email ne peut pas être modifié</p>
+                    <p className="text-[11px] text-slate-400 dark:text-slate-500 dark:text-slate-400 mt-1">L'email ne peut pas être modifié</p>
                   </div>
                 </div>
 
@@ -443,7 +443,7 @@ export default function Parametres() {
                         className="w-full px-3 py-2.5 bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 rounded-lg text-sm text-slate-800 dark:text-slate-100 outline-none focus:border-sharek-400 focus:ring-1 focus:ring-sharek-400 transition-all resize-none"
                         placeholder="Décrivez votre parcours, vos intérêts pédagogiques..."
                       />
-                      <p className="text-[11px] text-slate-400 dark:text-slate-500 mt-1 text-right">
+                      <p className="text-[11px] text-slate-400 dark:text-slate-500 dark:text-slate-400 mt-1 text-right">
                         {settings.bio.length}/500
                       </p>
                     </div>
@@ -484,12 +484,12 @@ export default function Parametres() {
 
                 <div className="divide-y divide-slate-100 dark:divide-slate-800">
                   {notifsLoading ? (
-                    <div className="px-6 py-8 flex items-center justify-center gap-2 text-slate-400 dark:text-slate-500 text-sm">
+                    <div className="px-6 py-8 flex items-center justify-center gap-2 text-slate-400 dark:text-slate-500 dark:text-slate-400 text-sm">
                       <i className="ri-loader-4-line animate-spin"></i>
                       Chargement des notifications...
                     </div>
                   ) : notifs.length === 0 ? (
-                    <div className="px-6 py-8 flex flex-col items-center text-slate-400 dark:text-slate-500">
+                    <div className="px-6 py-8 flex flex-col items-center text-slate-400 dark:text-slate-500 dark:text-slate-400">
                       <div className="w-10 h-10 flex items-center justify-center mb-2">
                         <i className="ri-notification-off-line text-xl"></i>
                       </div>
@@ -530,7 +530,7 @@ export default function Parametres() {
                           }}
                           className={`px-6 py-3.5 flex items-start gap-3 cursor-pointer transition-colors ${
                             n.read
-                              ? 'hover:bg-slate-50 dark:hover:bg-slate-800'
+                              ? 'hover:bg-slate-50 dark:bg-slate-800/50 dark:hover:bg-slate-800'
                               : 'bg-sharek-50 dark:bg-sharek-900/10 hover:bg-sharek-100 dark:hover:bg-sharek-900/20'
                           }`}
                         >
@@ -557,7 +557,7 @@ export default function Parametres() {
                             {n.message && (
                               <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5 truncate">{n.message}</p>
                             )}
-                            <p className="text-[11px] text-slate-400 dark:text-slate-500 mt-1">{dateStr}</p>
+                            <p className="text-[11px] text-slate-400 dark:text-slate-500 dark:text-slate-400 mt-1">{dateStr}</p>
                           </div>
                         </div>
                       );
@@ -567,7 +567,7 @@ export default function Parametres() {
 
                 {notifs.length > 6 && (
                   <div className="px-6 py-3 border-t border-slate-100 dark:border-slate-800 text-center">
-                    <span className="text-xs text-slate-400 dark:text-slate-500">
+                    <span className="text-xs text-slate-400 dark:text-slate-500 dark:text-slate-400">
                       + {notifs.length - 6} notification{notifs.length - 6 > 1 ? 's' : ''} supplémentaire{notifs.length - 6 > 1 ? 's' : ''}
                     </span>
                   </div>
@@ -699,7 +699,7 @@ export default function Parametres() {
                             ? isAdmin
                               ? 'bg-violet-50 dark:bg-violet-900/20 border-violet-300 dark:border-violet-700 text-violet-700 dark:text-violet-400'
                               : 'bg-sharek-50 dark:bg-sharek-900/20 border-sharek-300 dark:border-sharek-700 text-sharek-700 dark:text-sharek-400'
-                            : 'bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800'
+                            : 'bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:bg-slate-800/50 dark:hover:bg-slate-800'
                         }`}
                       >
                         <span>{lang.flag}</span>
@@ -731,7 +731,7 @@ export default function Parametres() {
                             ? isAdmin
                               ? 'bg-violet-50 dark:bg-violet-900/20 border-violet-300 dark:border-violet-700 text-violet-700 dark:text-violet-400'
                               : 'bg-sharek-50 dark:bg-sharek-900/20 border-sharek-300 dark:border-sharek-700 text-sharek-700 dark:text-sharek-400'
-                            : 'bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800'
+                            : 'bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:bg-slate-800/50 dark:hover:bg-slate-800'
                         }`}
                       >
                         <div className="w-4 h-4 flex items-center justify-center">
@@ -741,7 +741,7 @@ export default function Parametres() {
                       </button>
                     ))}
                   </div>
-                  <p className="text-xs text-slate-400 dark:text-slate-500 mt-2">
+                  <p className="text-xs text-slate-400 dark:text-slate-500 dark:text-slate-400 mt-2">
                     {settings.theme === 'system'
                       ? "Le thème s'adaptera automatiquement à vos préférences système."
                       : settings.theme === 'dark'

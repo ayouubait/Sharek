@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
+import { logger } from '@/lib/logger';
 import { Link } from 'react-router-dom';
 import { supabase } from '@/lib/supabase';
 import { withTimeout } from '@/lib/utils';
@@ -67,7 +68,7 @@ export default function AdminPage() {
         pendingResources: pendingCount || 0,
       });
     } catch (err) {
-      console.error('Admin counts fetch error:', err);
+      logger.error('Admin counts fetch error:', err);
     } finally {
       setLoadingCounts(false);
     }

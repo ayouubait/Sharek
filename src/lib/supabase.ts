@@ -26,7 +26,7 @@ try {
   }
 } catch (err) {
   if ((err as Error)?.message?.startsWith('[ShareK] FATAL')) throw err;
-  // Token wasn't a JWT — let Supabase fail naturally on the first request.
+  // Token wasn't a JWT - let Supabase fail naturally on the first request.
 }
 
 export const supabase = createClient(supabaseUrl, supabaseKey, {

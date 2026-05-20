@@ -1,15 +1,18 @@
-import { useState, useEffect, useMemo, useCallback } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
+import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/contexts/AuthContext';
-import { fetchProfilesMap, getDisplayProfile } from '@/lib/profiles';
+import { getDisplayProfile } from '@/lib/profiles';
 import type { Resource } from '@/mocks/data';
 import { withTimeout } from '@/lib/utils';
 import { getTypeConfig } from '@/lib/typeConfig';
 import MainLayout from '@/components/layout/MainLayout';
 import StatusBadge from '@/pages/ressource-detail/components/StatusBadge';
 import { useCategories } from '@/hooks/useCategories';
+import { useProfilesMap } from '@/hooks/useProfilesMap';
 import ResourceTypeBadge from '@/components/ResourceTypeBadge';
+import { queryKeys } from '@/lib/queryClient';
 
 function formatDate(dateStr: string) {
   return new Date(dateStr).toLocaleDateString('fr-FR', {
@@ -28,67 +31,54 @@ export default function ResourcesList() {
   const userSpecialty = user?.specialty;
   const { types, levels, typeLabelMap, specialties } = useCategories();
 
-  const [resources, setResources] = useState<Resource[]>([]);
-  const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState(searchParams.get('search') || '');
   const [filterLevel, setFilterLevel] = useState('');
   const [filterType, setFilterType] = useState('');
   const [filterStatus, setFilterStatus] = useState('');
   const [filterSubject, setFilterSubject] = useState('');
-  const [authorProfiles, setAuthorProfiles] = useState<Record<string, import('@/lib/profiles').ProfileInfo>>();
+  const [currentPage, setCurrentPage] = useState(1);
+  const PAGE_SIZE = 12;
 
-  const fetchResources = useCallback(async () => {
-    setLoading(true);
-    try {
+  const { data: resources = [], isLoading: loading } = useQuery({
+    queryKey: queryKeys.resources(),
+    queryFn: async (): Promise<Resource[]> => {
       const { data, error } = await withTimeout(supabase
         .from('resources')
         .select('id, title, school_level, unit, type, type_label, file_url, file_type, cover_image_url, objectives, competencies, duration, keywords, status, status_label, author_id, created_at, views, downloads, comments_count, subject')
         .order('created_at', { ascending: false }), 8000);
-
       if (error) throw error;
+      return (data || []).map((r) => ({
+        id: r.id,
+        title: r.title,
+        school_level: r.school_level,
+        unit: r.unit,
+        type: r.type,
+        type_label: r.type_label,
+        file_url: r.file_url || '',
+        file_type: r.file_type || '',
+        cover_image_url: r.cover_image_url || null,
+        objectives: r.objectives,
+        competencies: r.competencies,
+        duration: r.duration,
+        keywords: r.keywords || [],
+        status: r.status || 'not_evaluated',
+        status_label: r.status_label || 'Non évalué',
+        author_id: r.author_id,
+        created_at: r.created_at,
+        views: r.views || 0,
+        downloads: r.downloads || 0,
+        comments_count: r.comments_count || 0,
+        subject: r.subject,
+      }));
+    },
+    staleTime: 30 * 1000,
+  });
 
-      const supaResources: Resource[] = (data || [])
-        .map((r) => ({
-          id: r.id,
-          title: r.title,
-          school_level: r.school_level,
-          unit: r.unit,
-          type: r.type,
-          type_label: r.type_label,
-          file_url: r.file_url || '',
-          file_type: r.file_type || '',
-          cover_image_url: r.cover_image_url || null,
-          objectives: r.objectives,
-          competencies: r.competencies,
-          duration: r.duration,
-          keywords: r.keywords || [],
-          status: r.status || 'not_evaluated',
-          status_label: r.status_label || 'Non évalué',
-          author_id: r.author_id,
-          created_at: r.created_at,
-          views: r.views || 0,
-          downloads: r.downloads || 0,
-          comments_count: r.comments_count || 0,
-          subject: r.subject,
-        }));
-
-      setResources(supaResources);
-
-      const authorIds = [...new Set(supaResources.map((r) => r.author_id).filter(Boolean))];
-      if (authorIds.length > 0) {
-        const profiles = await fetchProfilesMap(authorIds);
-        setAuthorProfiles(profiles);
-      }
-    } catch {
-      setResources([]);
-    } finally {
-      setLoading(false);
-    }
-  }, [currentUserId]);
-
-  useEffect(() => {
-    fetchResources();
-  }, [fetchResources]);
+  const authorIds = useMemo(
+    () => [...new Set(resources.map((r) => r.author_id).filter(Boolean))],
+    [resources]
+  );
+  const { profiles: authorProfiles } = useProfilesMap(authorIds);
 
   const forcedSubject = !isAdmin && userSpecialty ? userSpecialty : null;
 
@@ -107,6 +97,18 @@ export default function ResourcesList() {
       return matchesSearch && matchesLevel && matchesType && matchesStatus && matchesSubject;
     });
   }, [resources, search, filterLevel, filterType, filterStatus, filterSubject, forcedSubject]);
+
+  const totalPages = Math.max(1, Math.ceil(filteredResources.length / PAGE_SIZE));
+  const safeCurrentPage = Math.min(currentPage, totalPages);
+  const pagedResources = useMemo(
+    () => filteredResources.slice((safeCurrentPage - 1) * PAGE_SIZE, safeCurrentPage * PAGE_SIZE),
+    [filteredResources, safeCurrentPage]
+  );
+
+  // Reset to page 1 when filters change
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [search, filterLevel, filterType, filterStatus, filterSubject]);
 
   const schoolLevels = useMemo(() => {
     return Array.from(new Set(resources.map((r) => r.school_level)));
@@ -150,27 +152,29 @@ export default function ResourcesList() {
             Explorez, filtrez et découvrez les ressources partagées par la communauté ShareK.
           </p>
         </div>
-        <div className="flex items-center gap-3">
+        <div className="flex flex-wrap items-center gap-2 sm:gap-3 w-full sm:w-auto">
           {forcedSubject && (
             <span
-              className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-medium border bg-sharek-50 text-sharek-700 border-sharek-200 whitespace-nowrap"
+              className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-medium border bg-sharek-50 text-sharek-700 border-sharek-200 max-w-full"
               title="Vous voyez uniquement les ressources de votre discipline"
             >
-              <div className="w-3.5 h-3.5 flex items-center justify-center">
+              <div className="w-3.5 h-3.5 flex items-center justify-center flex-shrink-0">
                 <i className="ri-filter-fill" />
               </div>
-              Ma discipline : {forcedSubject}
+              <span className="truncate">Ma discipline : {forcedSubject}</span>
             </span>
           )}
-          <button
-            onClick={() => navigate('/ressources/ajouter')}
-            className="inline-flex items-center gap-2 px-4 py-2.5 bg-sharek-600 hover:bg-sharek-700 text-white text-sm font-medium rounded-lg transition-colors whitespace-nowrap"
-          >
-            <div className="w-4 h-4 flex items-center justify-center">
-              <i className="ri-add-line" />
-            </div>
-            Ajouter une ressource
-          </button>
+          {!isAdmin && (
+            <button
+              onClick={() => navigate('/ressources/ajouter')}
+              className="inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-sharek-600 hover:bg-sharek-700 text-white text-sm font-medium rounded-lg transition-colors flex-1 sm:flex-initial min-w-0"
+            >
+              <div className="w-4 h-4 flex items-center justify-center flex-shrink-0">
+                <i className="ri-add-line" />
+              </div>
+              <span className="truncate">Ajouter une ressource</span>
+            </button>
+          )}
         </div>
       </div>
 
@@ -344,7 +348,23 @@ export default function ResourcesList() {
       </div>
 
       {/* Resources grid */}
-      {!loading && filteredResources.length === 0 ? (
+      {loading ? (
+        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5">
+          {Array.from({ length: 6 }).map((_, i) => (
+            <div key={i} className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-700 overflow-hidden shadow-soft animate-pulse">
+              <div className="h-40 bg-slate-100 dark:bg-slate-800" />
+              <div className="p-4 space-y-3">
+                <div className="h-4 bg-slate-100 dark:bg-slate-800 rounded w-3/4" />
+                <div className="h-3 bg-slate-100 dark:bg-slate-800 rounded w-1/2" />
+                <div className="flex items-center gap-2 pt-2">
+                  <div className="w-8 h-8 rounded-full bg-slate-100 dark:bg-slate-800" />
+                  <div className="h-3 bg-slate-100 dark:bg-slate-800 rounded flex-1" />
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      ) : filteredResources.length === 0 ? (
         <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-700 p-12 text-center shadow-soft">
           <div className="w-16 h-16 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-slate-400 dark:text-slate-500 mx-auto mb-4">
             <div className="w-8 h-8 flex items-center justify-center">
@@ -381,7 +401,7 @@ export default function ResourcesList() {
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5">
-          {filteredResources.map((resource) => {
+          {pagedResources.map((resource) => {
             const author = getDisplayProfile(resource.author_id, authorProfiles || {});
             const typeCfg = getTypeConfig(resource.type, resource.type_label);
             return (
@@ -506,6 +526,28 @@ export default function ResourcesList() {
               </div>
             );
           })}
+        </div>
+      )}
+
+      {!loading && filteredResources.length > PAGE_SIZE && (
+        <div className="flex items-center justify-center gap-2 mt-6">
+          <button
+            onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+            disabled={safeCurrentPage === 1}
+            className="px-3 py-2 text-sm rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-200 disabled:opacity-50 disabled:cursor-not-allowed hover:bg-slate-50 dark:hover:bg-slate-800 inline-flex items-center gap-1"
+          >
+            <i className="ri-arrow-left-s-line" /> Précédent
+          </button>
+          <span className="text-sm text-slate-500 dark:text-slate-400 px-3">
+            Page {safeCurrentPage} / {totalPages}
+          </span>
+          <button
+            onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+            disabled={safeCurrentPage === totalPages}
+            className="px-3 py-2 text-sm rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-200 disabled:opacity-50 disabled:cursor-not-allowed hover:bg-slate-50 dark:hover:bg-slate-800 inline-flex items-center gap-1"
+          >
+            Suivant <i className="ri-arrow-right-s-line" />
+          </button>
         </div>
       )}
     </MainLayout>

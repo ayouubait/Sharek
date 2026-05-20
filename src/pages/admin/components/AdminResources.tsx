@@ -1,4 +1,5 @@
 import ResourceTypeBadge from '@/components/ResourceTypeBadge';
+import { logger } from '@/lib/logger';
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/lib/supabase';
 import { withTimeout } from '@/lib/utils';
@@ -73,7 +74,7 @@ export default function AdminResources({ onCountsRefresh }: AdminResourcesProps)
         setAuthorsMap(map);
       }
     } catch (err) {
-      console.error('Resources fetch error:', err);
+      logger.error('Resources fetch error:', err);
       setToast({ type: 'error', message: 'Erreur lors du chargement des ressources.' });
     } finally {
       setLoading(false);
@@ -96,7 +97,7 @@ export default function AdminResources({ onCountsRefresh }: AdminResourcesProps)
       fetchResources();
       onCountsRefresh();
     } catch (err) {
-      console.error('Featured toggle error:', err);
+      logger.error('Featured toggle error:', err);
       setToast({ type: 'error', message: 'Erreur lors de la mise à jour.' });
     } finally {
       setActionLoading(false);
@@ -115,7 +116,7 @@ export default function AdminResources({ onCountsRefresh }: AdminResourcesProps)
       fetchResources();
       onCountsRefresh();
     } catch (err) {
-      console.error('Status change error:', err);
+      logger.error('Status change error:', err);
       setToast({ type: 'error', message: 'Erreur lors du changement de statut.' });
     } finally {
       setActionLoading(false);
@@ -151,7 +152,7 @@ export default function AdminResources({ onCountsRefresh }: AdminResourcesProps)
       fetchResources();
       onCountsRefresh();
     } catch (err) {
-      console.error('Delete error:', err);
+      logger.error('Delete error:', err);
       setToast({ type: 'error', message: 'Erreur lors de la suppression.' });
     } finally {
       setActionLoading(false);
@@ -287,6 +288,16 @@ export default function AdminResources({ onCountsRefresh }: AdminResourcesProps)
                             <i className="ri-bar-chart-box-line"></i>
                           </div>
                           Stats
+                        </Link>
+                        <Link
+                          to={`/ressources/modifier/${r.id}`}
+                          className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-md text-xs font-medium bg-white text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700/30 dark:bg-slate-700/30 transition-colors"
+                          title="Modifier la ressource"
+                        >
+                          <div className="w-3 h-3 flex items-center justify-center">
+                            <i className="ri-edit-line"></i>
+                          </div>
+                          Modifier
                         </Link>
                         <button
                           onClick={() => handleToggleFeatured(r)}

@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import type { PeerReview as MockPeerReview, Recommendation as MockRecommendation } from '@/mocks/data';
 import { supabase } from '@/lib/supabase';
+import { withTimeout } from '@/lib/utils';
 
 interface PeerReviewPanelProps {
   resourceId: string;
@@ -10,6 +11,7 @@ interface PeerReviewPanelProps {
   resourceAuthorId?: string;
   resourceType?: string;
   resourceTypeLabel?: string;
+  refreshKey?: number;
 }
 
 interface SupaPeerReview {
@@ -28,6 +30,7 @@ interface SupaRecommendation {
   reviewer_id: string;
   reviewer_name: string;
   file_name: string;
+  file_url?: string | null;
   submitted_at: string;
   status: string;
   status_label: string;
@@ -38,15 +41,7 @@ interface SupaRecommendation {
   decision: string;
 }
 
-const reviewSteps = [
-  { step: 'Ressource soumise', icon: 'ri-file-upload-line' },
-  { step: 'Reviewer 1 confirmé', icon: 'ri-user-follow-line' },
-  { step: 'Reviewer 2 confirmé', icon: 'ri-user-follow-line' },
-  { step: 'Lecture et analyse du document', icon: 'ri-book-open-line' },
-  { step: 'Commentaires déposés', icon: 'ri-message-3-line' },
-  { step: 'Fichier de recommandation soumis', icon: 'ri-file-list-3-line' },
-  { step: 'Validation finale', icon: 'ri-shield-check-line' },
-];
+// Steps are now computed dynamically from review states in buildSteps()
 
 const statusConfig: Record<string, { bg: string; text: string; icon: string; label: string; step: number }> = {
   invited: { bg: 'bg-slate-100', text: 'text-slate-600', icon: 'ri-mail-line', label: 'Invité', step: 1 },
@@ -56,12 +51,13 @@ const statusConfig: Record<string, { bg: string; text: string; icon: string; lab
 };
 
 const decisionOptions = [
+  'Validé sans modifications',
   'Validé avec modifications mineures',
   'Validé avec modifications majeures',
-  'Non validé',
+  'Refusé',
 ];
 
-export default function PeerReviewPanel({ resourceId, resourceStatus, resourceAuthorId, resourceType, resourceTypeLabel }: PeerReviewPanelProps) {
+export default function PeerReviewPanel({ resourceId, resourceStatus, resourceAuthorId, resourceType, resourceTypeLabel, refreshKey }: PeerReviewPanelProps) {
   const { user } = useAuth();
   const isAuthenticated = !!user;
   const isAdmin = user?.role === 'admin';
@@ -85,25 +81,50 @@ export default function PeerReviewPanel({ resourceId, resourceStatus, resourceAu
     file_name: 'recommandation.pdf',
   });
   const [submitRecLoading, setSubmitRecLoading] = useState(false);
+  const [recFile, setRecFile] = useState<File | null>(null);
   const [reviewerProfiles, setReviewerProfiles] = useState<Record<string, { name: string; email: string; initials: string; color: string }>>({});
 
   const myReview = localReviews.find((r) => r.reviewer_id === currentUserId);
 
-  const completedStepCount = () => {
-    switch (resourceStatus) {
-      case 'peer_reviewed':
-        return 7;
-      case 'needs_revision':
-        return 5;
-      case 'under_review':
-        return 4;
-      case 'pending_reviewers':
-        return 3;
-      case 'not_evaluated':
-        return 1;
-      default:
-        return 1;
-    }
+  // Build the progress steps dynamically from real review states
+  const buildSteps = (): { label: string; icon: string; completed: boolean }[] => {
+    const steps: { label: string; icon: string; completed: boolean }[] = [];
+
+    steps.push({ label: 'Ressource soumise', icon: 'ri-file-upload-line', completed: true });
+
+    // Per-reviewer steps (up to 2 reviewers)
+    [0, 1].forEach((idx) => {
+      const review = localReviews[idx];
+      const reviewerLabel = `Reviewer ${idx + 1}`;
+      if (!review) {
+        steps.push({ label: `${reviewerLabel} : en attente d'inscription`, icon: 'ri-user-search-line', completed: false });
+        return;
+      }
+
+      const status = review.status;
+      const isReading = status === 'reading' || status === 'recommendation_submitted';
+      const hasRecommendation = !!review.recommendation_submitted || status === 'recommendation_submitted';
+
+      steps.push({ label: `${reviewerLabel} inscrit`, icon: 'ri-user-follow-line', completed: true });
+      steps.push({
+        label: `${reviewerLabel} : ${isReading ? 'document lu' : 'en attente de lecture'}`,
+        icon: 'ri-book-open-line',
+        completed: isReading,
+      });
+      steps.push({
+        label: `${reviewerLabel} : ${hasRecommendation ? 'recommandation soumise' : 'recommandation en attente'}`,
+        icon: 'ri-file-list-3-line',
+        completed: hasRecommendation,
+      });
+    });
+
+    steps.push({
+      label: 'Validation finale',
+      icon: 'ri-shield-check-line',
+      completed: resourceStatus === 'peer_reviewed',
+    });
+
+    return steps;
   };
 
   const renderReviewer = (id: string) => {
@@ -180,7 +201,7 @@ export default function PeerReviewPanel({ resourceId, resourceStatus, resourceAu
         const supaRecs = recsData as SupaRecommendation[];
         allRecs = supaRecs;
     } catch {
-      // Silencieux — mocks restent
+      // Silencieux - mocks restent
     }
 
     setLocalReviews(allReviews);
@@ -190,7 +211,47 @@ export default function PeerReviewPanel({ resourceId, resourceStatus, resourceAu
 
   useEffect(() => {
     loadData();
-  }, [loadData]);
+  }, [loadData, refreshKey]);
+
+  // Realtime: refetch when peer_reviews or recommendations change for this resource
+  useEffect(() => {
+    const channel = supabase
+      .channel(`peer-reviews-${resourceId}`)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'peer_reviews', filter: `resource_id=eq.${resourceId}` }, () => {
+        loadData();
+      })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'recommendations', filter: `resource_id=eq.${resourceId}` }, () => {
+        loadData();
+      })
+      .subscribe();
+    return () => { supabase.removeChannel(channel); };
+  }, [resourceId, loadData]);
+
+  const handleBecomeReviewer = async () => {
+    if (!user || isAuthor) return;
+    setActionLoading('become');
+    try {
+      const { data, error } = await supabase
+        .from('peer_reviews')
+        .insert({
+          resource_id: resourceId,
+          reviewer_id: currentUserId,
+          status: 'accepted',
+          status_label: 'Accepté',
+          recommendation_submitted: false,
+          joined_at: new Date().toISOString(),
+        })
+        .select()
+        .single();
+      if (!error && data) {
+        setLocalReviews((prev) => [...prev, data as SupaPeerReview]);
+        // Note: notification is sent server-side by trigger trg_notify_review_assigned (anonymized)
+      }
+    } catch {
+      // ignore
+    }
+    setActionLoading(null);
+  };
 
   const handleAcceptReview = async () => {
     if (!myReview) return;
@@ -238,12 +299,34 @@ export default function PeerReviewPanel({ resourceId, resourceStatus, resourceAu
     e.preventDefault();
     if (!myReview || !user) return;
     setSubmitRecLoading(true);
+
+    // Upload the file first if provided
+    let fileUrl: string | null = null;
+    let fileName = recFile?.name || recForm.file_name || 'recommandation.pdf';
+    if (recFile) {
+      try {
+        const safeName = recFile.name.replace(/[^a-zA-Z0-9._-]/g, '_');
+        const path = `${currentUserId}/${resourceId}/${Date.now()}_${safeName}`;
+        const { error: uploadError } = await withTimeout(
+          supabase.storage.from('recommendations').upload(path, recFile, { upsert: false }),
+          30000
+        );
+        if (!uploadError) {
+          const { data: pub } = supabase.storage.from('recommendations').getPublicUrl(path);
+          fileUrl = pub?.publicUrl || null;
+        }
+      } catch {
+        // continue without file
+      }
+    }
+
     try {
-      const { error: recError } = await supabase.from('recommendations').insert({
+      const { error: recError } = await withTimeout(supabase.from('recommendations').insert({
         resource_id: resourceId,
         reviewer_id: currentUserId,
         reviewer_name: currentUserName,
-        file_name: recForm.file_name || 'recommandation.pdf',
+        file_name: fileName,
+        file_url: fileUrl,
         observations: recForm.observations,
         strengths: recForm.strengths,
         weaknesses: recForm.weaknesses,
@@ -251,12 +334,12 @@ export default function PeerReviewPanel({ resourceId, resourceStatus, resourceAu
         decision: recForm.decision,
         status: 'submitted',
         status_label: 'Soumis',
-      });
+      }), 15000);
       if (!recError) {
-        const { error: prError } = await supabase
+        const { error: prError } = await withTimeout(supabase
           .from('peer_reviews')
           .update({ status: 'recommendation_submitted', status_label: 'Recommandation soumise', recommendation_submitted: true })
-          .eq('id', myReview.id);
+          .eq('id', myReview.id), 15000);
         if (!prError) {
           setLocalReviews((prev) =>
             prev.map((r) =>
@@ -285,19 +368,8 @@ export default function PeerReviewPanel({ resourceId, resourceStatus, resourceAu
           ]);
           setShowRecForm(false);
           setRecForm({ observations: '', strengths: '', weaknesses: '', suggestions: '', decision: decisionOptions[0], file_name: 'recommandation.pdf' });
-          if (resourceAuthorId && resourceAuthorId !== currentUserId) {
-            try {
-              await supabase.from('notifications').insert({
-                user_id: resourceAuthorId,
-                type: 'review',
-                title: 'Recommandation soumise',
-                message: `${currentUserName} a soumis sa recommandation pour votre ${resourceTypeLabel ? resourceTypeLabel.toLowerCase() : 'ressource'}.`,
-                resource_id: resourceId,
-              });
-            } catch {
-              // ignore
-            }
-          }
+          setRecFile(null);
+          // Note: notification is sent server-side by trigger trg_notify_recommendation (anonymized)
         }
       }
     } catch {
@@ -370,6 +442,19 @@ export default function PeerReviewPanel({ resourceId, resourceStatus, resourceAu
               </div>
               <p className="text-sm text-slate-500 font-medium">Aucun reviewer pour le moment</p>
               <p className="text-xs text-slate-400 mt-1">Deux reviewers sont nécessaires pour démarrer le processus.</p>
+              {isAuthenticated && !isAuthor && !isReviewer && !isAdmin && (
+                <button
+                  onClick={handleBecomeReviewer}
+                  disabled={actionLoading === 'become'}
+                  className="mt-4 inline-flex items-center gap-2 px-4 py-2 bg-sharek-600 hover:bg-sharek-700 disabled:bg-slate-300 text-white text-sm font-medium rounded-md transition-colors"
+                >
+                  {actionLoading === 'become' ? (
+                    <><i className="ri-loader-4-line animate-spin"></i> Inscription...</>
+                  ) : (
+                    <><i className="ri-team-line"></i> Devenir reviewer</>
+                  )}
+                </button>
+              )}
             </div>
           ) : (
             <div className="space-y-4">
@@ -478,6 +563,23 @@ export default function PeerReviewPanel({ resourceId, resourceStatus, resourceAu
                   </div>
                 );
               })}
+            </div>
+          )}
+
+          {/* Become reviewer button when there's still room (1 reviewer / 2) */}
+          {reviewerCount === 1 && isAuthenticated && !isAuthor && !isReviewer && !isAdmin && (
+            <div className="mt-4 text-center">
+              <button
+                onClick={handleBecomeReviewer}
+                disabled={actionLoading === 'become'}
+                className="inline-flex items-center gap-2 px-4 py-2 bg-sharek-600 hover:bg-sharek-700 disabled:bg-slate-300 text-white text-sm font-medium rounded-md transition-colors"
+              >
+                {actionLoading === 'become' ? (
+                  <><i className="ri-loader-4-line animate-spin"></i> Inscription...</>
+                ) : (
+                  <><i className="ri-team-line"></i> Devenir le 2ème reviewer</>
+                )}
+              </button>
             </div>
           )}
 
@@ -678,14 +780,18 @@ export default function PeerReviewPanel({ resourceId, resourceStatus, resourceAu
                 </select>
               </div>
               <div>
-                <label className="block text-xs font-medium text-slate-600 mb-1">Nom du fichier</label>
+                <label className="block text-xs font-medium text-slate-600 mb-1">Fichier joint (PDF, image, optionnel)</label>
                 <input
-                  type="text"
-                  value={recForm.file_name}
-                  onChange={(e) => setRecForm((prev) => ({ ...prev, file_name: e.target.value }))}
-                  className="w-full px-3 py-2 text-sm text-slate-800 dark:text-slate-100 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-md focus:outline-none focus:ring-2 focus:ring-ocean-500 focus:border-transparent"
-                  placeholder="recommandation.pdf"
+                  type="file"
+                  accept=".pdf,image/*"
+                  onChange={(e) => setRecFile(e.target.files?.[0] || null)}
+                  className="w-full text-xs text-slate-600 file:mr-3 file:py-2 file:px-3 file:rounded-md file:border-0 file:text-xs file:font-medium file:bg-sharek-50 file:text-sharek-700 hover:file:bg-sharek-100"
                 />
+                {recFile && (
+                  <p className="text-[11px] text-slate-500 mt-1 truncate">
+                    {recFile.name} ({(recFile.size / 1024).toFixed(0)} KB)
+                  </p>
+                )}
               </div>
             </div>
             <div className="flex items-center justify-end gap-2 pt-2">
@@ -725,50 +831,37 @@ export default function PeerReviewPanel({ resourceId, resourceStatus, resourceAu
         </div>
         <div className="p-5">
           <div className="relative space-y-0">
-            {reviewSteps.map((step, index) => {
-              const completed = index < completedStepCount();
-              const isLast = index === reviewSteps.length - 1;
-
-              return (
-                <div key={step.step} className="relative flex items-start gap-3 pb-5 last:pb-0">
-                  {/* Connector line */}
-                  {!isLast && (
+            {(() => {
+              const steps = buildSteps();
+              return steps.map((step, index) => {
+                const nextCompleted = index + 1 < steps.length && steps[index + 1].completed;
+                const isLast = index === steps.length - 1;
+                return (
+                  <div key={`${step.label}-${index}`} className="relative flex items-start gap-3 pb-5 last:pb-0">
+                    {!isLast && (
+                      <div
+                        className={`absolute left-[17px] top-7 w-0.5 ${nextCompleted ? 'bg-sharek-400' : 'bg-slate-200'}`}
+                        style={{ height: 'calc(100% - 14px)' }}
+                      />
+                    )}
                     <div
-                      className={`absolute left-[17px] top-7 w-0.5 ${
-                        index < completedStepCount() - 1 ? 'bg-sharek-400' : 'bg-slate-200'
-                      }`}
-                      style={{ height: 'calc(100% - 14px)' }}
-                    />
-                  )}
-                  {/* Step icon */}
-                  <div
-                    className={`relative z-10 w-9 h-9 flex-shrink-0 flex items-center justify-center rounded-full border-2 ${
-                      completed
-                        ? 'bg-sharek-500 border-sharek-500 text-white'
-                        : 'bg-white border-slate-200 text-slate-400'
-                    }`}
-                  >
-                    <div className="w-4 h-4 flex items-center justify-center">
-                      {completed ? (
-                        <i className="ri-check-line text-sm"></i>
-                      ) : (
-                        <i className={`${step.icon} text-sm`}></i>
-                      )}
-                    </div>
-                  </div>
-                  {/* Step label */}
-                  <div className="pt-1.5">
-                    <p
-                      className={`text-sm font-medium ${
-                        completed ? 'text-slate-800' : 'text-slate-400'
+                      className={`relative z-10 w-9 h-9 flex-shrink-0 flex items-center justify-center rounded-full border-2 ${
+                        step.completed ? 'bg-sharek-500 border-sharek-500 text-white' : 'bg-white border-slate-200 text-slate-400'
                       }`}
                     >
-                      {step.step}
-                    </p>
+                      <div className="w-4 h-4 flex items-center justify-center">
+                        {step.completed ? <i className="ri-check-line text-sm"></i> : <i className={`${step.icon} text-sm`}></i>}
+                      </div>
+                    </div>
+                    <div className="pt-1.5">
+                      <p className={`text-sm font-medium ${step.completed ? 'text-slate-800' : 'text-slate-400'}`}>
+                        {step.label}
+                      </p>
+                    </div>
                   </div>
-                </div>
-              );
-            })}
+                );
+              });
+            })()}
           </div>
         </div>
       </div>
@@ -824,19 +917,19 @@ export default function PeerReviewPanel({ resourceId, resourceStatus, resourceAu
                     <div className="mt-4 space-y-3 bg-slate-50 rounded-lg p-4 border border-slate-100">
                       <div>
                         <p className="text-xs font-semibold text-slate-600 uppercase tracking-wide mb-1">Observations</p>
-                        <p className="text-sm text-slate-600 leading-relaxed">{rec.observations}</p>
+                        <p className="text-sm text-slate-600 leading-relaxed break-words whitespace-pre-wrap">{rec.observations}</p>
                       </div>
                       <div>
                         <p className="text-xs font-semibold text-slate-600 uppercase tracking-wide mb-1">Points forts</p>
-                        <p className="text-sm text-slate-600 leading-relaxed">{rec.strengths}</p>
+                        <p className="text-sm text-slate-600 leading-relaxed break-words whitespace-pre-wrap">{rec.strengths}</p>
                       </div>
                       <div>
                         <p className="text-xs font-semibold text-slate-600 uppercase tracking-wide mb-1">Points à améliorer</p>
-                        <p className="text-sm text-slate-600 leading-relaxed">{rec.weaknesses}</p>
+                        <p className="text-sm text-slate-600 leading-relaxed break-words whitespace-pre-wrap">{rec.weaknesses}</p>
                       </div>
                       <div>
                         <p className="text-xs font-semibold text-slate-600 uppercase tracking-wide mb-1">Suggestions</p>
-                        <p className="text-sm text-slate-600 leading-relaxed">{rec.suggestions}</p>
+                        <p className="text-sm text-slate-600 leading-relaxed break-words whitespace-pre-wrap">{rec.suggestions}</p>
                       </div>
                       <div className="pt-2 border-t border-slate-200">
                         <p className="text-xs font-semibold text-slate-600 uppercase tracking-wide mb-1">Décision finale</p>
@@ -855,10 +948,22 @@ export default function PeerReviewPanel({ resourceId, resourceStatus, resourceAu
                   )}
 
                   <div className="flex flex-wrap gap-2 mt-3">
-                    <span className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-slate-400 cursor-default">
-                      <i className="ri-eye-off-line"></i>
-                      Fichier non téléchargeable
-                    </span>
+                    {(rec as SupaRecommendation).file_url ? (
+                      <a
+                        href={(rec as SupaRecommendation).file_url as string}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-sharek-700 bg-sharek-50 hover:bg-sharek-100 rounded-md transition-colors"
+                      >
+                        <i className="ri-download-2-line"></i>
+                        Télécharger {rec.file_name || 'le fichier'}
+                      </a>
+                    ) : (
+                      <span className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-slate-400 cursor-default">
+                        <i className="ri-eye-off-line"></i>
+                        Aucun fichier joint
+                      </span>
+                    )}
                   </div>
                 </div>
               );

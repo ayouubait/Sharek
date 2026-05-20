@@ -222,7 +222,7 @@ export default function ContactPage() {
                     <p className="text-sm text-slate-500 leading-relaxed">
                       Projet de recherche mené au Maroc
                       <br />
-                      <span className="text-xs text-slate-400">Enseignement secondaire — Sciences de la Vie et de la Terre</span>
+                      <span className="text-xs text-slate-400">Enseignement secondaire - Sciences de la Vie et de la Terre</span>
                     </p>
                   </div>
                 </div>

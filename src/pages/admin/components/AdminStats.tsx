@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
+import { logger } from '@/lib/logger';
 import { supabase } from '@/lib/supabase';
 import { withTimeout } from '@/lib/utils';
 import GrowthChart from './GrowthChart';
@@ -335,7 +336,7 @@ export default function AdminStats({ counts, loading: countsLoading }: AdminStat
       }));
       setEvents(recentEvents);
     } catch (err) {
-      console.error('Analytics fetch error:', err);
+      logger.error('Analytics fetch error:', err);
     } finally {
       setAnalyticsLoading(false);
     }

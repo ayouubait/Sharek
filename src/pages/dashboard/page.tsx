@@ -272,7 +272,7 @@ export default function Dashboard() {
 
   return (
     <MainLayout>
-      {/* Header — single user mention only */}
+      {/* Header - single user mention only */}
       <div className="mb-6">
         <h1 className="text-2xl font-bold text-slate-800 dark:text-slate-100">
           {loading ? 'Chargement...' : `Bonjour, ${greetingName} !`}
@@ -293,7 +293,7 @@ export default function Dashboard() {
 
       {/* Main grid */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Left column — actionable content */}
+        {/* Left column - actionable content */}
         <div className="lg:col-span-2 space-y-6">
           <AuthorTasks resources={myResources} loading={loading} />
           <ReviewerTasks
@@ -309,7 +309,7 @@ export default function Dashboard() {
           />
         </div>
 
-        {/* Right column — quick actions + stats + notifications */}
+        {/* Right column - quick actions + stats + notifications */}
         <div className="lg:col-span-1">
           <DashboardSidebar
             stats={stats}

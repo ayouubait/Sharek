@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
+import { logger } from '@/lib/logger';
 import { useTranslation } from 'react-i18next';
 import { supabase } from '@/lib/supabase';
 import { withTimeout } from '@/lib/utils';
@@ -47,7 +48,7 @@ export default function ParametresAdminPage() {
         setCategories(data as Category[]);
       }
     } catch (err) {
-      console.error('Fetch categories error:', err);
+      logger.error('Fetch categories error:', err);
     }
   }, []);
 
@@ -61,7 +62,7 @@ export default function ParametresAdminPage() {
         setPlatformSettings(data as PlatformSetting[]);
       }
     } catch (err) {
-      console.error('Fetch platform settings error:', err);
+      logger.error('Fetch platform settings error:', err);
     }
   }, []);
 

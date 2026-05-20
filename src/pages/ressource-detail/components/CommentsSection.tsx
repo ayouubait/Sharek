@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
+import { logger } from '@/lib/logger';
 import { Link } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import type { Comment as MockComment } from '@/mocks/data';
@@ -358,6 +359,10 @@ export default function CommentsSection({ resourceId, resourceAuthorId, resource
         .select()
         .single();
 
+      if (error) {
+        logger.error('[CommentsSection] INSERT failed:', error);
+      }
+
       if (!error && data) {
         // Optimistic: ajouter immédiatement au state local pour ne pas dépendre
         // du realtime echo (qui peut être absent si la réplication n'est pas
@@ -402,8 +407,8 @@ export default function CommentsSection({ resourceId, resourceAuthorId, resource
         }
         return;
       }
-    } catch {
-      // Fallback local
+    } catch (err) {
+      logger.error('[CommentsSection] INSERT exception:', err);
     }
 
     // Fallback local si Supabase échoue (mock ID par exemple)

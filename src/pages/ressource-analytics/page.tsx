@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { logger } from '@/lib/logger';
 import { useParams, Link } from 'react-router-dom';
 import {
   LineChart,
@@ -149,7 +150,7 @@ export default function ResourceAnalytics() {
           });
         }
 
-        // 3. Comments (all time — filter client-side by range)
+        // 3. Comments (all time - filter client-side by range)
         const { data: commData } = await withTimeout(
           supabase.from('comments').select('id, content, author_id, created_at').eq('resource_id', id).order('created_at', { ascending: true }),
           10000
@@ -177,7 +178,7 @@ export default function ResourceAnalytics() {
         );
         if (!cancelled) setVersions((verData as VersionRow[]) || []);
       } catch (err) {
-        console.error('Analytics fetch error:', err);
+        logger.error('Analytics fetch error:', err);
         if (!cancelled) setError('Erreur lors du chargement des données analytiques.');
       } finally {
         if (!cancelled) setLoading(false);
@@ -312,7 +313,7 @@ export default function ResourceAnalytics() {
     : 0;
   const avgScore = recommendations.length > 0
     ? (recommendations.reduce((sum, r) => sum + r.score, 0) / recommendations.length).toFixed(1)
-    : '—';
+    : '-';
 
   return (
     <MainLayout>

@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
+import { logger } from '@/lib/logger';
 import { supabase } from '@/lib/supabase';
 import { withTimeout } from '@/lib/utils';
 
@@ -67,7 +68,7 @@ export default function AdminComments({ onCountsRefresh }: AdminCommentsProps) {
         setResourcesMap(rMap);
       }
     } catch (err) {
-      console.error('Comments fetch error:', err);
+      logger.error('Comments fetch error:', err);
       setToast({ type: 'error', message: 'Erreur lors du chargement des commentaires.' });
     } finally {
       setLoading(false);
@@ -90,7 +91,7 @@ export default function AdminComments({ onCountsRefresh }: AdminCommentsProps) {
       fetchComments();
       onCountsRefresh();
     } catch (err) {
-      console.error('Toggle delete error:', err);
+      logger.error('Toggle delete error:', err);
       setToast({ type: 'error', message: 'Erreur lors de l\'action.' });
     } finally {
       setActionLoading(false);
@@ -109,7 +110,7 @@ export default function AdminComments({ onCountsRefresh }: AdminCommentsProps) {
       fetchComments();
       onCountsRefresh();
     } catch (err) {
-      console.error('Permanent delete error:', err);
+      logger.error('Permanent delete error:', err);
       setToast({ type: 'error', message: 'Erreur lors de la suppression.' });
     } finally {
       setActionLoading(false);

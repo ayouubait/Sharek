@@ -1,5 +1,5 @@
 // =====================================================================
-// logger — DEV-only console output. In production, errors go to Sentry
+// logger - DEV-only console output. In production, errors go to Sentry
 // (or any sink you wire into `reportError`).
 // =====================================================================
 //

@@ -67,6 +67,7 @@ Deno.serve(async (req) => {
     const password = String(body.password ?? "");
     const name = String(body.name ?? "").trim();
     const role = String(body.role ?? "teacher").trim().toLowerCase();
+    const specialty = body.specialty ? String(body.specialty).trim() : null;
 
     // Validation
     if (!email || !password || !name) {
@@ -130,7 +131,12 @@ Deno.serve(async (req) => {
     }
 
     // Reassert role server-side (trigger may default it to 'teacher').
-    await admin.from("profiles").update({ role: finalRole, name, email }).eq("id", newUserData.user.id);
+    // For teachers, also persist the specialty so the discipline filter is forced from first login.
+    const profileUpdate: Record<string, string | null> = { role: finalRole, name, email };
+    if (finalRole === "teacher" && specialty) {
+      profileUpdate.specialty = specialty;
+    }
+    await admin.from("profiles").update(profileUpdate).eq("id", newUserData.user.id);
 
     return json(
       { success: true, userId: newUserData.user.id, email, role: finalRole, isFirstSetup },

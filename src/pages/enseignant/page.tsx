@@ -1022,7 +1022,7 @@ export default function EnseignantProfil() {
                         <td className="px-3 py-3 text-right">
                           <span className="inline-flex items-center gap-1 text-xs font-medium text-violet-600 bg-violet-50 px-2 py-0.5 rounded-md">
                             <i className="ri-star-line text-[10px]"></i>
-                            —
+                            -
                           </span>
                         </td>
                       </tr>
@@ -1054,7 +1054,7 @@ export default function EnseignantProfil() {
               {allResources.map((resource) => {
 
                 const statusInfo = statusConfig[resource.status] || statusConfig.not_evaluated;
-                const cover = coverImages[resource.type] || coverImages.course;
+                const cover = resource.cover_image_url || coverImages[resource.type] || coverImages.course;
 
                 return (
                   <div

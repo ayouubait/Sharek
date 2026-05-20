@@ -1,35 +1,52 @@
 import { Navigate, type RouteObject } from "react-router-dom";
+import { lazy, Suspense } from "react";
 import TeacherOnlyRoute from "@/components/TeacherOnlyRoute";
 import SharedAuthRoute from "@/components/SharedAuthRoute";
 import AdminRoute from "@/components/AdminRoute";
 import PublicOnlyRoute from "@/components/PublicOnlyRoute";
 import NotFound from "@/pages/NotFound";
-import Dashboard from "@/pages/dashboard/page";
-import HomeRedirect from "@/pages/home/HomeRedirect";
-import EnseignantProfil from "@/pages/enseignant/page";
-import ResourcesList from "@/pages/ressources/page";
-import ResourceAdd from "@/pages/ressources-ajouter/page";
-import ResourceDetail from "@/pages/ressource-detail/page";
-import ResourceEdit from "@/pages/ressource-modifier/page";
-import ResourceAnalytics from "@/pages/ressource-analytics/page";
-import PeerReview from "@/pages/peer-review/page";
-import Commentaires from "@/pages/commentaires/page";
-import Profil from "@/pages/profil/page";
-import Parametres from "@/pages/parametres/page";
-import LoginPage from "@/pages/login/page";
-import SignupPage from "@/pages/signup/page";
-import MesRessources from "@/pages/mes-ressources/page";
-import MesFavoris from "@/pages/mes-favoris/page";
-import MessagesPage from "@/pages/messages/page";
-import AdminPage from "@/pages/admin/page";
-import MotDePasseOublie from "@/pages/mot-de-passe-oublie/page";
-import ReinitialiserMotDePasse from "@/pages/reinitialiser-mot-de-passe/page";
-import ParametresAdminPage from "@/pages/parametres-admin/page";
+
+const Dashboard = lazy(() => import("@/pages/dashboard/page"));
+const HomeRedirect = lazy(() => import("@/pages/home/HomeRedirect"));
+const EnseignantProfil = lazy(() => import("@/pages/enseignant/page"));
+const ResourcesList = lazy(() => import("@/pages/ressources/page"));
+const ResourceAdd = lazy(() => import("@/pages/ressources-ajouter/page"));
+const ResourceDetail = lazy(() => import("@/pages/ressource-detail/page"));
+const ResourceEdit = lazy(() => import("@/pages/ressource-modifier/page"));
+const ResourceAnalytics = lazy(() => import("@/pages/ressource-analytics/page"));
+const PeerReview = lazy(() => import("@/pages/peer-review/page"));
+const Commentaires = lazy(() => import("@/pages/commentaires/page"));
+const Profil = lazy(() => import("@/pages/profil/page"));
+const Parametres = lazy(() => import("@/pages/parametres/page"));
+const LoginPage = lazy(() => import("@/pages/login/page"));
+const SignupPage = lazy(() => import("@/pages/signup/page"));
+const MesRessources = lazy(() => import("@/pages/mes-ressources/page"));
+const MesFavoris = lazy(() => import("@/pages/mes-favoris/page"));
+const MessagesPage = lazy(() => import("@/pages/messages/page"));
+const AdminPage = lazy(() => import("@/pages/admin/page"));
+const MotDePasseOublie = lazy(() => import("@/pages/mot-de-passe-oublie/page"));
+const ReinitialiserMotDePasse = lazy(() => import("@/pages/reinitialiser-mot-de-passe/page"));
+const ParametresAdminPage = lazy(() => import("@/pages/parametres-admin/page"));
+
+function PageFallback() {
+  return (
+    <div className="min-h-[60vh] flex items-center justify-center">
+      <div className="flex items-center gap-3 text-slate-400">
+        <i className="ri-loader-4-line animate-spin text-2xl"></i>
+        <span className="text-sm">Chargement…</span>
+      </div>
+    </div>
+  );
+}
+
+function withSuspense(node: React.ReactNode) {
+  return <Suspense fallback={<PageFallback />}>{node}</Suspense>;
+}
 
 const routes: RouteObject[] = [
   {
     path: "/",
-    element: <HomeRedirect />,
+    element: withSuspense(<HomeRedirect />),
   },
   {
     path: "/accueil",
@@ -47,7 +64,7 @@ const routes: RouteObject[] = [
     path: "/dashboard",
     element: (
       <TeacherOnlyRoute>
-        <Dashboard />
+        {withSuspense(<Dashboard />)}
       </TeacherOnlyRoute>
     ),
   },
@@ -55,7 +72,7 @@ const routes: RouteObject[] = [
     path: "/admin",
     element: (
       <AdminRoute>
-        <AdminPage />
+        {withSuspense(<AdminPage />)}
       </AdminRoute>
     ),
   },
@@ -63,23 +80,23 @@ const routes: RouteObject[] = [
     path: "/admin/parametres",
     element: (
       <AdminRoute>
-        <ParametresAdminPage />
+        {withSuspense(<ParametresAdminPage />)}
       </AdminRoute>
     ),
   },
   {
     path: "/enseignant/:id",
-    element: <EnseignantProfil />,
+    element: withSuspense(<EnseignantProfil />),
   },
   {
     path: "/ressources",
-    element: <ResourcesList />,
+    element: withSuspense(<ResourcesList />),
   },
   {
     path: "/ressources/ajouter",
     element: (
       <TeacherOnlyRoute>
-        <ResourceAdd />
+        {withSuspense(<ResourceAdd />)}
       </TeacherOnlyRoute>
     ),
   },
@@ -87,19 +104,19 @@ const routes: RouteObject[] = [
     path: "/ressources/modifier/:id",
     element: (
       <TeacherOnlyRoute>
-        <ResourceEdit />
+        {withSuspense(<ResourceEdit />)}
       </TeacherOnlyRoute>
     ),
   },
   {
     path: "/ressources/:id",
-    element: <ResourceDetail />,
+    element: withSuspense(<ResourceDetail />),
   },
   {
     path: "/ressources/:id/analytics",
     element: (
       <TeacherOnlyRoute>
-        <ResourceAnalytics />
+        {withSuspense(<ResourceAnalytics />)}
       </TeacherOnlyRoute>
     ),
   },
@@ -107,7 +124,7 @@ const routes: RouteObject[] = [
     path: "/mes-ressources",
     element: (
       <TeacherOnlyRoute>
-        <MesRessources />
+        {withSuspense(<MesRessources />)}
       </TeacherOnlyRoute>
     ),
   },
@@ -115,7 +132,7 @@ const routes: RouteObject[] = [
     path: "/mes-favoris",
     element: (
       <SharedAuthRoute>
-        <MesFavoris />
+        {withSuspense(<MesFavoris />)}
       </SharedAuthRoute>
     ),
   },
@@ -123,7 +140,7 @@ const routes: RouteObject[] = [
     path: "/peer-review",
     element: (
       <TeacherOnlyRoute>
-        <PeerReview />
+        {withSuspense(<PeerReview />)}
       </TeacherOnlyRoute>
     ),
   },
@@ -131,7 +148,7 @@ const routes: RouteObject[] = [
     path: "/commentaires",
     element: (
       <TeacherOnlyRoute>
-        <Commentaires />
+        {withSuspense(<Commentaires />)}
       </TeacherOnlyRoute>
     ),
   },
@@ -139,7 +156,7 @@ const routes: RouteObject[] = [
     path: "/messages",
     element: (
       <SharedAuthRoute>
-        <MessagesPage />
+        {withSuspense(<MessagesPage />)}
       </SharedAuthRoute>
     ),
   },
@@ -147,7 +164,7 @@ const routes: RouteObject[] = [
     path: "/messages/:userId",
     element: (
       <SharedAuthRoute>
-        <MessagesPage />
+        {withSuspense(<MessagesPage />)}
       </SharedAuthRoute>
     ),
   },
@@ -155,7 +172,7 @@ const routes: RouteObject[] = [
     path: "/profil",
     element: (
       <SharedAuthRoute>
-        <Profil />
+        {withSuspense(<Profil />)}
       </SharedAuthRoute>
     ),
   },
@@ -163,7 +180,7 @@ const routes: RouteObject[] = [
     path: "/parametres",
     element: (
       <SharedAuthRoute>
-        <Parametres />
+        {withSuspense(<Parametres />)}
       </SharedAuthRoute>
     ),
   },
@@ -171,7 +188,7 @@ const routes: RouteObject[] = [
     path: "/connexion",
     element: (
       <PublicOnlyRoute>
-        <LoginPage />
+        {withSuspense(<LoginPage />)}
       </PublicOnlyRoute>
     ),
   },
@@ -179,17 +196,17 @@ const routes: RouteObject[] = [
     path: "/inscription",
     element: (
       <PublicOnlyRoute>
-        <SignupPage />
+        {withSuspense(<SignupPage />)}
       </PublicOnlyRoute>
     ),
   },
   {
     path: "/mot-de-passe-oublie",
-    element: <MotDePasseOublie />,
+    element: withSuspense(<MotDePasseOublie />),
   },
   {
     path: "/reinitialiser-mot-de-passe",
-    element: <ReinitialiserMotDePasse />,
+    element: withSuspense(<ReinitialiserMotDePasse />),
   },
   {
     path: "*",

@@ -6,7 +6,7 @@ const steps = [
   {
     icon: 'ri-upload-cloud-line',
     title: 'Partager',
-    desc: 'Les enseignants uploagent leurs ressources pédagogiques — cours, fiches, évaluations, activités pratiques et simulations.',
+    desc: 'Les enseignants uploagent leurs ressources pédagogiques - cours, fiches, évaluations, activités pratiques et simulations.',
     color: 'bg-sharek-50 text-sharek-600',
   },
   {
@@ -199,7 +199,7 @@ export default function AboutPage() {
       <section className="py-16 border-b border-slate-100">
         <div className="max-w-5xl mx-auto px-4 lg:px-6">
           <div className="text-center mb-12 animate-fade-in-up">
-            <h2 className="text-2xl md:text-3xl font-bold text-slate-800 mb-3">Approche PCI — Peer Community In</h2>
+            <h2 className="text-2xl md:text-3xl font-bold text-slate-800 mb-3">Approche PCI - Peer Community In</h2>
             <p className="text-slate-500 max-w-2xl mx-auto">
               ShareK reprend le modèle innovant de la « Peer Community In » (PCI) pour adapter
               la revue par les pairs à l&apos;évaluation des ressources éducatives.

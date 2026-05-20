@@ -57,6 +57,7 @@ export default function ResourceDetail() {
   const [reviewersLoading, setReviewersLoading] = useState(false);
   const [actionLoading, setActionLoading] = useState(false);
   const [unassigningReviewerId, setUnassigningReviewerId] = useState<string | null>(null);
+  const [peerRefreshKey, setPeerRefreshKey] = useState(0);
   const [swappingReviewerId, setSwappingReviewerId] = useState<string | null>(null);
   const [swapSelectedId, setSwapSelectedId] = useState('');
   const [showShareModal, setShowShareModal] = useState(false);
@@ -75,26 +76,34 @@ export default function ResourceDetail() {
     let cancelled = false;
 
     async function fetchResource() {
-      try {
-        // Fetch from Supabase
-        const { data, error } = await withTimeout(supabase
-          .from('resources')
-          .select('*')
-          .eq('id', id)
-          .single(), 8000);
+      let data: Resource | null = null;
+      // Retry up to 3 times before giving up - Supabase can have cold starts
+      for (let attempt = 0; attempt < 3 && !data && !cancelled; attempt++) {
+        try {
+          const result = await withTimeout(supabase
+            .from('resources')
+            .select('*')
+            .eq('id', id)
+            .maybeSingle(), 15000);
+          if (result.data) {
+            data = result.data as unknown as Resource;
+            break;
+          }
+        } catch {
+          // timeout: try again
+        }
+      }
 
-        if (cancelled) return;
+      if (cancelled) return;
 
-        if (data && !error) {
-          const supaRes = data as unknown as Resource;
-          setResource(supaRes);
-
-          // Fetch real author profile from Supabase
+      if (data) {
+        setResource(data);
+        try {
           const { data: profileData } = await withTimeout(supabase
             .from('profiles')
             .select('id, name, initials, color, institution, city, avatar_url')
-            .eq('id', supaRes.author_id)
-            .maybeSingle(), 8000);
+            .eq('id', data.author_id)
+            .maybeSingle(), 10000);
 
           if (profileData && !cancelled) {
             setAuthor({
@@ -107,12 +116,12 @@ export default function ResourceDetail() {
               avatar: profileData.avatar_url || null,
             });
           }
+        } catch {
+          // profile fetch failed, keep going
         }
-      } catch {
-        // Timeout or network error: loading will be stopped in finally
-      } finally {
-        if (!cancelled) setLoading(false);
       }
+
+      if (!cancelled) setLoading(false);
     }
 
     fetchResource();
@@ -307,13 +316,18 @@ export default function ResourceDetail() {
 
   async function handleAssignReviewer() {
     if (!selectedReviewer || !id) return;
+    if (assignedReviewers.length >= 2) {
+      setToast({ message: 'Maximum 2 reviewers par ressource. Désassignez avant d\'en ajouter.', type: 'error' });
+      return;
+    }
     setActionLoading(true);
     try {
       const { error } = await withTimeout(
         supabase.from('peer_reviews').insert({
           resource_id: id,
           reviewer_id: selectedReviewer,
-          status: 'pending',
+          status: 'invited',
+          status_label: 'Invité',
         }),
         10000
       );
@@ -323,6 +337,8 @@ export default function ResourceDetail() {
       setSelectedReviewer('');
       // Refresh admin stats
       setAdminStats((prev) => prev ? { ...prev, totalReviews: prev.totalReviews + 1, pendingReviews: prev.pendingReviews + 1 } : null);
+      // Force PeerReviewPanel to refetch
+      setPeerRefreshKey((k) => k + 1);
     } catch {
       setToast({ message: 'Erreur lors de l\'assignation', type: 'error' });
     } finally {
@@ -333,6 +349,7 @@ export default function ResourceDetail() {
   async function handleSwapReviewer(oldReviewerId: string, newReviewerId: string) {
     if (!id || oldReviewerId === newReviewerId) return;
     setActionLoading(true);
+    setPeerRefreshKey((k) => k + 1);
     try {
       const { error } = await withTimeout(
         supabase.from('peer_reviews')
@@ -676,7 +693,7 @@ export default function ResourceDetail() {
                   value={
                     resource.views && resource.views > 0
                       ? `${(((resource.downloads || 0) + adminStats.totalComments * 2) / resource.views * 100).toFixed(1)}%`
-                      : '—'
+                      : '-'
                   }
                   sub="Downloads + coms / vues"
                   color="text-rose-600"
@@ -713,7 +730,7 @@ export default function ResourceDetail() {
               />
             </div>
 
-            {/* Resource metadata — compact inline */}
+            {/* Resource metadata - compact inline */}
             <div className="mt-4 bg-white dark:bg-slate-900 rounded-lg border border-slate-200 dark:border-slate-700 p-4">
               <div className="flex flex-wrap items-center gap-2">
                 <span className="text-[11px] font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wide mr-1">Métadonnées</span>
@@ -773,12 +790,13 @@ export default function ResourceDetail() {
                 resourceAuthorId={resource.author_id}
                 resourceType={resource.type}
                 resourceTypeLabel={resource.type_label}
+                refreshKey={peerRefreshKey}
               />
             </div>
           </div>
         </div>
 
-        {/* Author Profile Block — above footer */}
+        {/* Author Profile Block - above footer */}
         {author && (
           <div className="mt-8 -mx-4 lg:-mx-8 px-4 lg:px-8 py-8 bg-amber-50 dark:bg-slate-800 border-y border-amber-100 dark:border-slate-700">
             <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4 max-w-5xl mx-auto">

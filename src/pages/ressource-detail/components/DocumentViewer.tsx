@@ -164,7 +164,7 @@ function InlineSimulatedPages({ resource }: { resource: Resource }) {
   const pages = [
     {
       title: resource.title,
-      subtitle: `${resource.type_label} — ${resource.school_level}`,
+      subtitle: `${resource.type_label} - ${resource.school_level}`,
       body: [
         `Niveau : ${resource.school_level}`,
         `Unité : ${resource.unit}`,
@@ -265,7 +265,7 @@ function InlineSimulatedPages({ resource }: { resource: Resource }) {
   );
 }
 
-/* ─── Real PDF Viewer — inline embed via Google Docs Viewer ─── */
+/* ─── Real PDF Viewer - inline embed via Google Docs Viewer ─── */
 function RealPdfViewer({ url, title }: { url: string; title: string }) {
   // Google Docs Viewer renders the PDF inside an embed regardless of
   // Content-Disposition header on the source. Works for any public PDF URL.

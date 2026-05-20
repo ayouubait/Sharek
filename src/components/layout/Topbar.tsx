@@ -6,7 +6,7 @@ import { useRealtimeNotifications } from '@/hooks/useRealtimeNotifications';
 import AvatarImage from '@/components/AvatarImage';
 import ResourceTypeBadge from '@/components/ResourceTypeBadge';
 
-// Removed — now in useRealtimeNotifications hook
+// Removed - now in useRealtimeNotifications hook
 
 interface TopbarProps {
   onMenuToggle: () => void;
@@ -73,7 +73,7 @@ export default function Topbar({ onMenuToggle }: TopbarProps) {
 
   // Messages non lus + realtime
   useEffect(() => {
-    if (!user?.id || isAdmin) return;
+    if (!user?.id) return;
 
     const fetchUnreadMessages = async () => {
       try {
@@ -261,7 +261,7 @@ export default function Topbar({ onMenuToggle }: TopbarProps) {
           </Link>
         ) : (
           <>
-            {/* Notifications — visible for everyone, right next to profile */}
+            {/* Notifications - visible for everyone, right next to profile */}
             <div className="relative" ref={notifRef}>
                 <button
                   onClick={() => setNotifOpen(!notifOpen)}
@@ -373,22 +373,20 @@ export default function Topbar({ onMenuToggle }: TopbarProps) {
                 )}
               </div>
 
-            {/* Messages - hidden for admin */}
-            {!isAdmin && (
-              <Link
-                to="/messages"
-                className="relative w-9 h-9 flex items-center justify-center rounded-lg hover:bg-slate-50 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-400"
-              >
-                <div className="w-5 h-5 flex items-center justify-center">
-                  <i className="ri-mail-send-line"></i>
-                </div>
-                {unreadMessagesCount > 0 && (
-                  <span className="absolute top-1 right-1 w-4 h-4 bg-red-500 text-white text-[10px] font-bold rounded-full flex items-center justify-center">
-                    {unreadMessagesCount > 9 ? '9+' : unreadMessagesCount}
-                  </span>
-                )}
-              </Link>
-            )}
+            {/* Messages - visible for everyone including admin */}
+            <Link
+              to="/messages"
+              className="relative w-9 h-9 flex items-center justify-center rounded-lg hover:bg-slate-50 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-400"
+            >
+              <div className="w-5 h-5 flex items-center justify-center">
+                <i className="ri-mail-send-line"></i>
+              </div>
+              {unreadMessagesCount > 0 && (
+                <span className="absolute top-1 right-1 w-4 h-4 bg-red-500 text-white text-[10px] font-bold rounded-full flex items-center justify-center">
+                  {unreadMessagesCount > 9 ? '9+' : unreadMessagesCount}
+                </span>
+              )}
+            </Link>
 
             {/* Profile */}
             <div className="relative" ref={profileRef}>

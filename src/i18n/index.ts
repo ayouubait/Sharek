@@ -7,10 +7,13 @@ i18n
   .use(LanguageDetector)
   .use(initReactI18next)
   .init({
-    lng: 'en',
-    fallbackLng: 'en',
+    lng: 'fr',
+    fallbackLng: 'fr',
     debug: false,
     resources: messages,
+    ns: ['common', 'translation'],
+    defaultNS: 'common',
+    fallbackNS: 'translation',
     interpolation: {
       escapeValue: false,
     },

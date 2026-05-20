@@ -21,16 +21,6 @@ interface FormData {
   embed_title: string;
 }
 
-const durationOptions = [
-  '30 minutes',
-  '45 minutes',
-  '1 heure',
-  '1 heure 30',
-  '2 heures',
-  '3 heures',
-  '4 heures',
-  'Séquence complète (plusieurs séances)',
-];
 
 function extractYouTubeId(url: string): string | null {
   if (!url) return null;
@@ -299,7 +289,7 @@ export default function ResourceAdd() {
 
         const accessibleUrl = await getAccessibleStorageUrl('resources', coverPath);
         if (!accessibleUrl) {
-          throw new Error("Impossible de récupérer l'URL publique de l'image. Le bucket 'resources' est probablement privé — applique la migration 0006.");
+          throw new Error("Impossible de récupérer l'URL publique de l'image. Le bucket 'resources' est probablement privé - applique la migration 0006.");
         }
         coverImageUrl = accessibleUrl;
       } catch (err) {
@@ -710,7 +700,7 @@ export default function ResourceAdd() {
                     <div className="w-5 h-5 flex items-center justify-center"><i className="ri-image-add-line text-lg text-slate-400" /></div>
                   </div>
                   <p className="text-sm font-medium text-slate-700 mb-0.5">{coverImagePreview ? 'Changer l\'image' : 'Ajouter une image de couverture'}</p>
-                  <p className="text-xs text-slate-400">Recadrage automatique 16:9 — JPG, PNG, WEBP — Max 5 Mo</p>
+                  <p className="text-xs text-slate-400">Recadrage automatique 16:9 - JPG, PNG, WEBP - Max 5 Mo</p>
                 </div>
               </div>
             </div>
@@ -778,7 +768,7 @@ export default function ResourceAdd() {
                     </div>
                     <p className="text-sm font-medium text-slate-700 mb-1">Glissez-déposez votre fichier ici</p>
                     <p className="text-xs text-slate-400 mb-2">ou cliquez pour parcourir</p>
-                    <p className="text-[11px] text-slate-400">PDF, PPTX, HTML, ZIP — Max 50 Mo</p>
+                    <p className="text-[11px] text-slate-400">PDF, PPTX, HTML, ZIP - Max 50 Mo</p>
                   </div>
                 )}
               </div>
@@ -944,30 +934,20 @@ export default function ResourceAdd() {
                 <label htmlFor="duration" className="block text-sm font-medium text-slate-700 mb-1.5">
                   Durée estimée <span className="text-rose-500">*</span>
                 </label>
-                <div className="relative">
-                  <select
-                    id="duration"
-                    name="duration"
-                    value={formData.duration}
-                    onChange={(e) => handleChange('duration', e.target.value)}
-                    data-error={!!errors?.duration}
-                    className={`w-full px-4 py-2.5 rounded-lg border text-sm bg-white appearance-none transition-colors focus:outline-none focus:ring-2 focus:ring-sharek-500/20 ${
-                      errors?.duration
-                        ? 'border-rose-300 focus:border-rose-400'
-                        : 'border-slate-200 focus:border-sharek-400'
-                    }`}
-                  >
-                    <option value="">Sélectionner une durée</option>
-                    {durationOptions.map((dur) => (
-                      <option key={dur} value={dur}>
-                        {dur}
-                      </option>
-                    ))}
-                  </select>
-                  <div className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 flex items-center justify-center pointer-events-none text-slate-400">
-                    <i className="ri-arrow-down-s-line" />
-                  </div>
-                </div>
+                <input
+                  id="duration"
+                  name="duration"
+                  type="text"
+                  value={formData.duration}
+                  onChange={(e) => handleChange('duration', e.target.value)}
+                  placeholder="Ex: 1 heure 30, 2 séances de 50 min, séquence complète..."
+                  data-error={!!errors?.duration}
+                  className={`w-full px-4 py-2.5 rounded-lg border text-sm bg-white transition-colors focus:outline-none focus:ring-2 focus:ring-sharek-500/20 ${
+                    errors?.duration
+                      ? 'border-rose-300 focus:border-rose-400'
+                      : 'border-slate-200 focus:border-sharek-400'
+                  }`}
+                />
                 {errors?.duration && (
                   <span className="text-xs text-rose-500 mt-1 block">{errors.duration}</span>
                 )}
@@ -1026,7 +1006,7 @@ export default function ResourceAdd() {
                 </button>
               </div>
               <p className="text-xs text-slate-400 mt-2">
-                {keywords.length}/15 mots-clés — Ex: photosynthèse, cellule, génétique...
+                {keywords.length}/15 mots-clés - Ex: photosynthèse, cellule, génétique...
               </p>
             </div>
           </div>

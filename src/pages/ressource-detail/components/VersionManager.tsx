@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
+import { logger } from '@/lib/logger';
 import { useAuth } from '@/contexts/AuthContext';
 import type { ResourceVersion } from '@/mocks/data';
 import { supabase } from '@/lib/supabase';
@@ -180,7 +181,7 @@ export default function VersionManager({
         });
 
       if (uploadError) {
-        console.error('Storage upload error:', uploadError);
+        logger.error('Storage upload error:', uploadError);
         throw new Error(`Upload échoué : ${uploadError.message}`);
       }
 
@@ -204,7 +205,7 @@ export default function VersionManager({
       });
 
       if (insertError) {
-        console.error('DB insert error:', insertError);
+        logger.error('DB insert error:', insertError);
         throw new Error(`Sauvegarde en base échouée : ${insertError.message}`);
       }
 
@@ -218,7 +219,7 @@ export default function VersionManager({
         loadVersions();
       }, 500);
     } catch (err: any) {
-      console.error('Upload version error:', err);
+      logger.error('Upload version error:', err);
       setUploadError(err?.message || 'Une erreur inattendue est survenue lors de la sauvegarde.');
       setUploading(false);
     }
@@ -271,7 +272,7 @@ export default function VersionManager({
 
   return (
     <div className="mb-4">
-      {/* AUTEUR — full version manager */}
+      {/* AUTEUR - full version manager */}
       {isAuthor && (
         <div className="bg-white dark:bg-slate-800 rounded-lg border border-slate-200 dark:border-slate-700 overflow-hidden">
           <div className="px-4 py-3 flex items-center justify-between border-b border-slate-100">
@@ -306,7 +307,7 @@ export default function VersionManager({
             </div>
           </div>
 
-          {/* Version pills — seulement si des versions existent */}
+          {/* Version pills - seulement si des versions existent */}
           {versions.length > 0 && (
             <div className="px-4 py-3 flex items-center gap-2 flex-wrap">
               {versions.map((v) => {
@@ -356,7 +357,7 @@ export default function VersionManager({
         </div>
       )}
 
-      {/* NON-AUTEUR — version courante uniquement */}
+      {/* NON-AUTEUR - version courante uniquement */}
       {!isAuthor && latestVersion && (
         <div className="bg-white dark:bg-slate-800 rounded-lg border border-slate-200 dark:border-slate-700 overflow-hidden">
           <div className="px-4 py-3 flex items-center gap-2.5 border-b border-slate-100">
@@ -390,7 +391,7 @@ export default function VersionManager({
         </div>
       )}
 
-      {/* Upload new version form — AUTEUR uniquement */}
+      {/* Upload new version form - AUTEUR uniquement */}
       {showUploadForm && isAuthor && (
         <div className="mt-3 bg-white dark:bg-slate-800 rounded-lg border border-slate-200 dark:border-slate-700 p-4">
           <div className="flex items-center gap-2 mb-3">
@@ -494,7 +495,7 @@ export default function VersionManager({
         </div>
       )}
 
-      {/* History / Timeline — AUTEUR uniquement */}
+      {/* History / Timeline - AUTEUR uniquement */}
       {showHistory && isAuthor && (
         <div className="mt-3 bg-white dark:bg-slate-800 rounded-lg border border-slate-200 dark:border-slate-700 overflow-hidden">
           <div className="px-4 py-3 border-b border-slate-100">

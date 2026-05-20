@@ -79,11 +79,11 @@ export function ToastProvider({ children }: { children: ReactNode }) {
 export function useToast(): ToastApi {
   const ctx = useContext(ToastContext);
   if (!ctx) {
-    // Soft fallback so a missing provider does not crash the page —
+    // Soft fallback so a missing provider does not crash the page -
     // returns a no-op API and logs once for diagnostics.
     if (typeof window !== 'undefined' && !(window as { __toastWarned?: boolean }).__toastWarned) {
       (window as { __toastWarned?: boolean }).__toastWarned = true;
-      logger.warn('useToast called outside ToastProvider — falling back to no-op.');
+      logger.warn('useToast called outside ToastProvider - falling back to no-op.');
     }
     const noop: ToastApi = {
       show: () => {},
@@ -96,7 +96,7 @@ export function useToast(): ToastApi {
   return ctx;
 }
 
-// Hook to bridge old code paths that throw uncaught errors — show them as toast.
+// Hook to bridge old code paths that throw uncaught errors - show them as toast.
 export function useGlobalErrorToast() {
   const toast = useToast();
   useEffect(() => {

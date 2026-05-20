@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { supabase } from '@/lib/supabase';
+import { withTimeout } from '@/lib/utils';
 import { logger } from '@/lib/logger';
 import { useToast } from '@/lib/toast';
 import { computeKIndex, aggregateResourceStats, type KIndexBreakdown } from '@/lib/kindex';
@@ -35,7 +36,7 @@ export default function Profil() {
   const [uploadingAvatar, setUploadingAvatar] = useState(false);
   const avatarInputRef = useRef<HTMLInputElement>(null);
 
-  // Admin stats — robust role check (trim + lowercase)
+  // Admin stats - robust role check (trim + lowercase)
   const normalizedRole = (profile?.role || '').toString().trim().toLowerCase();
   const isAdmin = normalizedRole === 'admin';
   const [adminStats, setAdminStats] = useState<AdminStats>({
@@ -49,40 +50,25 @@ export default function Profil() {
 
   const fetchAdminStats = useCallback(async () => {
     if (!user) return;
-    try {
-      const { count: totalUsers } = await supabase
-        .from('profiles')
-        .select('*', { count: 'exact', head: true });
-      const { count: bannedUsers } = await supabase
-        .from('profiles')
-        .select('*', { count: 'exact', head: true })
-        .eq('is_banned', true);
-      const { count: totalResources } = await supabase
-        .from('resources')
-        .select('*', { count: 'exact', head: true });
-      const { count: pendingReviews } = await supabase
-        .from('peer_reviews')
-        .select('*', { count: 'exact', head: true })
-        .in('status', ['reading', 'accepted']);
-      const { count: totalComments } = await supabase
-        .from('comments')
-        .select('*', { count: 'exact', head: true });
-      const { count: featuredResources } = await supabase
-        .from('resources')
-        .select('*', { count: 'exact', head: true })
-        .eq('status', 'peer_reviewed');
+    const safeCount = async (q: PromiseLike<{ count: number | null }>) => {
+      try {
+        const { count } = await withTimeout(q as Promise<{ count: number | null }>, 8000);
+        return count ?? 0;
+      } catch {
+        return 0;
+      }
+    };
 
-      setAdminStats({
-        totalUsers: totalUsers || 0,
-        bannedUsers: bannedUsers || 0,
-        totalResources: totalResources || 0,
-        pendingReviews: pendingReviews || 0,
-        totalComments: totalComments || 0,
-        featuredResources: featuredResources || 0,
-      });
-    } catch (err) {
-      logger.error('Admin stats fetch error:', err);
-    }
+    const [totalUsers, bannedUsers, totalResources, pendingReviews, totalComments, featuredResources] = await Promise.all([
+      safeCount(supabase.from('profiles').select('id', { count: 'exact', head: true })),
+      safeCount(supabase.from('profiles').select('id', { count: 'exact', head: true }).eq('is_banned', true)),
+      safeCount(supabase.from('resources').select('id', { count: 'exact', head: true })),
+      safeCount(supabase.from('peer_reviews').select('id', { count: 'exact', head: true }).in('status', ['reading', 'accepted'])),
+      safeCount(supabase.from('comments').select('id', { count: 'exact', head: true })),
+      safeCount(supabase.from('resources').select('id', { count: 'exact', head: true }).eq('status', 'peer_reviewed')),
+    ]);
+
+    setAdminStats({ totalUsers, bannedUsers, totalResources, pendingReviews, totalComments, featuredResources });
   }, [user]);
 
   const fetchProfileData = useCallback(async () => {
@@ -93,11 +79,14 @@ export default function Profil() {
     setLoading(true);
 
     try {
-      const { data: profileData, error: profileError } = await supabase
-        .from('profiles')
-        .select('*')
-        .eq('id', user.id)
-        .maybeSingle();
+      const { data: profileData, error: profileError } = await withTimeout(
+        supabase
+          .from('profiles')
+          .select('*')
+          .eq('id', user.id)
+          .maybeSingle(),
+        10000
+      );
 
       const resolvedName = resolveName(
         profileData?.name,
@@ -108,7 +97,7 @@ export default function Profil() {
 
       const rawAvatar = profileData?.avatar_url || null;
       const rawCover = profileData?.cover_url || null;
-      // Ignore huge data URLs that were stored as fallback — they are unreliable
+      // Ignore huge data URLs that were stored as fallback - they are unreliable
       const avatar_url = rawAvatar && rawAvatar.startsWith('data:') ? null : rawAvatar;
       const cover_url = rawCover && rawCover.startsWith('data:') ? null : rawCover;
 
@@ -409,10 +398,10 @@ export default function Profil() {
         <AdminProfileDashboard profile={profile} />
       ) : (
         <>
-          {/* Profile Header — clean, no cover */}
+          {/* Profile Header - clean, no cover */}
           <div className="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 shadow-soft p-4 sm:p-6 mb-6">
             <div className="flex flex-col sm:flex-row sm:items-start gap-4 sm:gap-5">
-              {/* Avatar — centered on mobile, left on desktop */}
+              {/* Avatar - centered on mobile, left on desktop */}
               <div className="relative group mx-auto sm:mx-0 flex-shrink-0">
                 <div className="w-24 h-24 sm:w-28 sm:h-28 rounded-2xl border-2 border-slate-100 dark:border-slate-700 shadow-md overflow-hidden bg-white">
                   <AvatarImage
@@ -485,7 +474,7 @@ export default function Profil() {
                   )}
                 </div>
 
-                {/* Action buttons — full row on mobile, inline right on desktop */}
+                {/* Action buttons - full row on mobile, inline right on desktop */}
                 <div className="flex flex-col sm:flex-row gap-2 mt-4">
                   <Link
                     to="/messages"
@@ -507,7 +496,7 @@ export default function Profil() {
           </div>
 
           {/* ========== TEACHER PROFILE ========== */}
-          {/* K-INDEX hero card — formule H-index pondérée */}
+          {/* K-INDEX hero card - formule H-index pondérée */}
           <div className="bg-gradient-to-br from-sharek-600 to-ocean-600 dark:from-sharek-700 dark:to-ocean-700 rounded-xl p-5 sm:p-6 mb-6 shadow-card text-white">
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
               <div className="flex items-center gap-4">
@@ -547,7 +536,7 @@ export default function Profil() {
             </div>
           </div>
 
-          {/* Stats row — clean and simple */}
+          {/* Stats row - clean and simple */}
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
             <div className="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 p-5 shadow-soft text-center">
               <div className="flex items-center justify-center mb-3">
@@ -599,7 +588,7 @@ export default function Profil() {
             </div>
           </div>
 
-          {/* Décomposition du K-index — 5 dimensions pondérées */}
+          {/* Décomposition du K-index - 5 dimensions pondérées */}
           {kIndexBreakdown && (
             <div className="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 p-5 shadow-soft mb-6">
               <div className="flex items-center justify-between mb-1">

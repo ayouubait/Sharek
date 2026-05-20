@@ -78,7 +78,7 @@ export default function Sidebar({ mobileOpen, onClose }: SidebarProps) {
 
         {/* Navigation */}
         <nav className="flex-1 px-4 py-4 space-y-1 overflow-y-auto">
-          {/* CTA : Ajouter une ressource — uniquement pour les non-admin */}
+          {/* CTA : Ajouter une ressource - uniquement pour les non-admin */}
           {user && !isAdmin && (
             <Link
               to={addResourceItem.path}

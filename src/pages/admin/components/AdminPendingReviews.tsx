@@ -1,4 +1,5 @@
 import ResourceTypeBadge from '@/components/ResourceTypeBadge';
+import { logger } from '@/lib/logger';
 import { useState, useEffect, useCallback } from 'react';
 import { Link } from 'react-router-dom';
 import { supabase } from '@/lib/supabase';
@@ -95,7 +96,7 @@ export default function AdminPendingReviews({ onCountsRefresh }: AdminPendingRev
       setReviewers(users || []);
       setActiveReviews(reviews || []);
     } catch (err) {
-      console.error('Pending reviews fetch error:', err);
+      logger.error('Pending reviews fetch error:', err);
       setToast({ type: 'error', message: 'Erreur lors du chargement des données.' });
     } finally {
       setLoading(false);
@@ -152,7 +153,7 @@ export default function AdminPendingReviews({ onCountsRefresh }: AdminPendingRev
       fetchData();
       onCountsRefresh();
     } catch (err) {
-      console.error('Assign error:', err);
+      logger.error('Assign error:', err);
       setToast({ type: 'error', message: 'Erreur lors de l\'assignation.' });
     } finally {
       setActionLoading(false);
@@ -183,7 +184,7 @@ export default function AdminPendingReviews({ onCountsRefresh }: AdminPendingRev
       fetchData();
       onCountsRefresh();
     } catch (err) {
-      console.error('Force complete error:', err);
+      logger.error('Force complete error:', err);
       setToast({ type: 'error', message: 'Erreur lors de la complétion forcée.' });
     } finally {
       setActionLoading(false);

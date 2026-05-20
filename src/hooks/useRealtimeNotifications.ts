@@ -49,7 +49,7 @@ export function useRealtimeNotifications(userId: string | undefined) {
               );
             }
           } catch {
-            // Silencieux — les notifs fonctionnent sans le type
+            // Silencieux - les notifs fonctionnent sans le type
           }
         }
 
@@ -68,7 +68,7 @@ export function useRealtimeNotifications(userId: string | undefined) {
         );
       }
     } catch {
-      // Silencieux — le realtime prendra le relais
+      // Silencieux - le realtime prendra le relais
     } finally {
       setLoading(false);
     }

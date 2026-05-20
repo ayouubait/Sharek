@@ -1,5 +1,8 @@
-import { useState, useEffect, useMemo, useCallback } from 'react';
+import { useMemo, useCallback } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/lib/supabase';
+import { withTimeout } from '@/lib/utils';
+import { queryKeys } from '@/lib/queryClient';
 
 export interface Category {
   id: string;
@@ -17,7 +20,6 @@ const DEFAULT_CATEGORIES: Category[] = [
   { id: 'c2', name: 'Tronc commun scientifique', slug: 'tcs', type: 'level', sort_order: 2, is_active: true, parent_slug: null },
   { id: 'c3', name: 'Bac sciences', slug: 'bac_sciences', type: 'level', sort_order: 3, is_active: true, parent_slug: null },
   { id: 'c4', name: 'Tous niveaux', slug: 'all_levels', type: 'level', sort_order: 4, is_active: true, parent_slug: null },
-
   // Types
   { id: 'c5', name: 'Cours', slug: 'course', type: 'type', sort_order: 1, is_active: true, parent_slug: null },
   { id: 'c6', name: 'Fiche de travail', slug: 'worksheet', type: 'type', sort_order: 2, is_active: true, parent_slug: null },
@@ -25,28 +27,6 @@ const DEFAULT_CATEGORIES: Category[] = [
   { id: 'c8', name: 'Activité pratique', slug: 'practical', type: 'type', sort_order: 4, is_active: true, parent_slug: null },
   { id: 'c9', name: 'Simulation', slug: 'simulation', type: 'type', sort_order: 5, is_active: true, parent_slug: null },
   { id: 'c10', name: 'Diaporama', slug: 'slides', type: 'type', sort_order: 6, is_active: true, parent_slug: null },
-
-  // Units - college
-  { id: 'c11', name: 'Les êtres vivants et leur environnement', slug: 'etres_vivants', type: 'unit', sort_order: 1, is_active: true, parent_slug: 'college' },
-  { id: 'c12', name: 'La matière et ses transformations', slug: 'matiere_transformations', type: 'unit', sort_order: 2, is_active: true, parent_slug: 'college' },
-  { id: 'c13', name: 'La Terre et l\'univers', slug: 'terre_univers', type: 'unit', sort_order: 3, is_active: true, parent_slug: 'college' },
-  { id: 'c14', name: 'Les reproductions chez les êtres vivants', slug: 'reproduction_vivants', type: 'unit', sort_order: 4, is_active: true, parent_slug: 'college' },
-  { id: 'c15', name: 'La nutrition et les organes digestifs', slug: 'nutrition', type: 'unit', sort_order: 5, is_active: true, parent_slug: 'college' },
-  { id: 'c16', name: 'La respiration et les échanges gazeux', slug: 'respiration', type: 'unit', sort_order: 6, is_active: true, parent_slug: 'college' },
-
-  // Units - TCS
-  { id: 'c17', name: 'La cellule et les échanges avec le milieu', slug: 'cellule', type: 'unit', sort_order: 1, is_active: true, parent_slug: 'tcs' },
-  { id: 'c18', name: 'La reproduction et l\'hérédité', slug: 'reproduction', type: 'unit', sort_order: 2, is_active: true, parent_slug: 'tcs' },
-  { id: 'c19', name: 'Les équilibres naturels', slug: 'equilibres_naturels', type: 'unit', sort_order: 3, is_active: true, parent_slug: 'tcs' },
-  { id: 'c20', name: 'L\'organisme et sa relation avec le milieu', slug: 'organisme', type: 'unit', sort_order: 4, is_active: true, parent_slug: 'tcs' },
-
-  // Units - Bac
-  { id: 'c21', name: 'Les métabolismes cellulaires', slug: 'metabolismes', type: 'unit', sort_order: 1, is_active: true, parent_slug: 'bac_sciences' },
-  { id: 'c22', name: 'Le système nerveux', slug: 'systeme_nerveux', type: 'unit', sort_order: 2, is_active: true, parent_slug: 'bac_sciences' },
-  { id: 'c23', name: 'La biologie et l\'environnement', slug: 'biologie_environnement', type: 'unit', sort_order: 3, is_active: true, parent_slug: 'bac_sciences' },
-  { id: 'c24', name: 'La génétique humaine', slug: 'genetique', type: 'unit', sort_order: 4, is_active: true, parent_slug: 'bac_sciences' },
-  { id: 'c25', name: 'Les biotechnologies', slug: 'biotechnologies', type: 'unit', sort_order: 5, is_active: true, parent_slug: 'bac_sciences' },
-
   // Specialties
   { id: 'c26', name: 'Sciences de la Vie et de la Terre', slug: 'svt', type: 'specialty', sort_order: 1, is_active: true, parent_slug: null },
   { id: 'c27', name: 'Sciences Physiques', slug: 'sp', type: 'specialty', sort_order: 2, is_active: true, parent_slug: null },
@@ -55,44 +35,37 @@ const DEFAULT_CATEGORIES: Category[] = [
   { id: 'c30', name: 'Physique', slug: 'physique', type: 'specialty', sort_order: 5, is_active: true, parent_slug: null },
 ];
 
+async function fetchCategories(): Promise<Category[]> {
+  const { data, error } = await withTimeout(
+    supabase
+      .from('categories')
+      .select('id, name, slug, type, sort_order, is_active, parent_slug')
+      .eq('is_active', true)
+      .order('sort_order', { ascending: true }),
+    8000
+  );
+  if (error) throw error;
+  if (!data || data.length === 0) return DEFAULT_CATEGORIES;
+  return data.map((d) => ({
+    id: String(d.id),
+    name: d.name,
+    slug: d.slug,
+    type: d.type as Category['type'],
+    sort_order: d.sort_order ?? 0,
+    is_active: d.is_active,
+    parent_slug: d.parent_slug ?? null,
+  }));
+}
+
 export function useCategories() {
-  const [categories, setCategories] = useState<Category[]>(DEFAULT_CATEGORIES);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-
-  const fetchCategories = useCallback(async () => {
-    try {
-      const { data, error: supaError } = await supabase
-        .from('categories')
-        .select('id, name, slug, type, sort_order, is_active, parent_slug')
-        .eq('is_active', true)
-        .order('sort_order', { ascending: true });
-
-      if (supaError) throw supaError;
-
-      if (data && data.length > 0) {
-        const mapped: Category[] = data.map((d) => ({
-          id: String(d.id),
-          name: d.name,
-          slug: d.slug,
-          type: d.type as Category['type'],
-          sort_order: d.sort_order ?? 0,
-          is_active: d.is_active,
-          parent_slug: d.parent_slug ?? null,
-        }));
-        setCategories(mapped);
-      }
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Erreur de chargement des catégories');
-      // Garde les valeurs par défaut en fallback
-    } finally {
-      setLoading(false);
-    }
-  }, []);
-
-  useEffect(() => {
-    fetchCategories();
-  }, [fetchCategories]);
+  const { data: categories = DEFAULT_CATEGORIES, isLoading, error } = useQuery({
+    queryKey: queryKeys.categories,
+    queryFn: fetchCategories,
+    staleTime: 60 * 60 * 1000, // 1 hour - categories rarely change
+    gcTime: 24 * 60 * 60 * 1000, // 24 hours in memory
+    retry: 2,
+    placeholderData: DEFAULT_CATEGORIES,
+  });
 
   const levels = useMemo(
     () => categories.filter((c) => c.type === 'level' && c.is_active).sort((a, b) => a.sort_order - b.sort_order),
@@ -122,17 +95,13 @@ export function useCategories() {
 
   const typeLabelMap = useMemo(() => {
     const map: Record<string, string> = {};
-    types.forEach((t) => {
-      map[t.slug] = t.name;
-    });
+    types.forEach((t) => { map[t.slug] = t.name; });
     return map;
   }, [types]);
 
   const levelLabelMap = useMemo(() => {
     const map: Record<string, string> = {};
-    levels.forEach((l) => {
-      map[l.slug] = l.name;
-    });
+    levels.forEach((l) => { map[l.slug] = l.name; });
     return map;
   }, [levels]);
 
@@ -142,11 +111,10 @@ export function useCategories() {
     types,
     units,
     specialties,
-    loading,
-    error,
+    loading: isLoading,
+    error: error?.message || null,
     unitsByParentSlug,
     typeLabelMap,
     levelLabelMap,
-    refresh: fetchCategories,
   };
 }
