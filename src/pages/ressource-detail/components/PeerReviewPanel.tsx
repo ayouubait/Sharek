@@ -4,6 +4,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import type { PeerReview as MockPeerReview, Recommendation as MockRecommendation } from '@/mocks/data';
 import { supabase } from '@/lib/supabase';
 import { withTimeout } from '@/lib/utils';
+import NewVersionButton from './NewVersionButton';
 
 interface PeerReviewPanelProps {
   resourceId: string;
@@ -12,6 +13,9 @@ interface PeerReviewPanelProps {
   resourceType?: string;
   resourceTypeLabel?: string;
   refreshKey?: number;
+  currentRound?: number;
+  resourceFileUrl?: string;
+  resourceFileName?: string;
 }
 
 interface SupaPeerReview {
@@ -57,7 +61,7 @@ const decisionOptions = [
   'Refusé',
 ];
 
-export default function PeerReviewPanel({ resourceId, resourceStatus, resourceAuthorId, resourceType, resourceTypeLabel, refreshKey }: PeerReviewPanelProps) {
+export default function PeerReviewPanel({ resourceId, resourceStatus, resourceAuthorId, resourceType, resourceTypeLabel, refreshKey, currentRound = 1 }: PeerReviewPanelProps) {
   const { user } = useAuth();
   const isAuthenticated = !!user;
   const isAdmin = user?.role === 'admin';
@@ -98,8 +102,9 @@ export default function PeerReviewPanel({ resourceId, resourceStatus, resourceAu
   // Build the progress steps dynamically from real review states
   const buildSteps = (): { label: string; icon: string; completed: boolean }[] => {
     const steps: { label: string; icon: string; completed: boolean }[] = [];
+    const roundLabel = currentRound > 1 ? ` (round ${currentRound})` : '';
 
-    steps.push({ label: 'Ressource soumise', icon: 'ri-file-upload-line', completed: true });
+    steps.push({ label: `Ressource soumise${currentRound > 1 ? ' - version ' + currentRound : ''}`, icon: 'ri-file-upload-line', completed: true });
 
     // Per-reviewer steps (up to 2 reviewers)
     [0, 1].forEach((idx) => {
@@ -121,7 +126,7 @@ export default function PeerReviewPanel({ resourceId, resourceStatus, resourceAu
         completed: isReading,
       });
       steps.push({
-        label: `${reviewerLabel} : ${hasRecommendation ? 'recommandation soumise' : 'recommandation en attente'}`,
+        label: `${reviewerLabel} : ${hasRecommendation ? 'recommandation soumise' + roundLabel : 'recommandation en attente' + roundLabel}`,
         icon: 'ri-file-list-3-line',
         completed: hasRecommendation,
       });
@@ -408,6 +413,7 @@ export default function PeerReviewPanel({ resourceId, resourceStatus, resourceAu
         decision: recForm.decision,
         status: 'submitted',
         status_label: 'Soumis',
+        round: currentRound,
       }), 15000);
       if (!recError) {
         const { error: prError } = await withTimeout(supabase
@@ -830,7 +836,7 @@ export default function PeerReviewPanel({ resourceId, resourceStatus, resourceAu
           )}
 
           {/* Author message */}
-          {isAuthenticated && isAuthor && (
+          {isAuthenticated && isAuthor && resourceStatus !== 'needs_revision' && (
             <div className="mt-4 flex items-start gap-2 p-3 rounded-md bg-slate-50 border border-slate-200">
               <div className="w-4 h-4 flex-shrink-0 flex items-center justify-center text-slate-400 mt-0.5">
                 <i className="ri-user-forbid-line text-sm"></i>
@@ -839,6 +845,24 @@ export default function PeerReviewPanel({ resourceId, resourceStatus, resourceAu
                 <span className="font-medium">Vous êtes l&apos;auteur de cette ressource.</span>{' '}
                 Vous ne pouvez pas participer à votre propre peer review. Deux reviewers extérieurs évalueront votre travail.
               </p>
+            </div>
+          )}
+
+          {/* Author action: submit new version when revisions are requested */}
+          {isAuthenticated && isAuthor && resourceStatus === 'needs_revision' && (
+            <div className="mt-4 p-4 rounded-md bg-amber-50 border border-amber-200">
+              <div className="flex items-start gap-2 mb-3">
+                <div className="w-4 h-4 flex-shrink-0 flex items-center justify-center text-amber-500 mt-0.5">
+                  <i className="ri-edit-circle-line text-sm"></i>
+                </div>
+                <div>
+                  <p className="text-xs font-semibold text-amber-800 mb-1">Round {currentRound} - Modifications demandées</p>
+                  <p className="text-xs text-amber-700 leading-relaxed">
+                    Les reviewers ont demandé des révisions. Lisez leurs recommandations puis soumettez une nouvelle version pour démarrer le round {currentRound + 1}.
+                  </p>
+                </div>
+              </div>
+              <NewVersionButton resourceId={resourceId} currentRound={currentRound} />
             </div>
           )}
         </div>

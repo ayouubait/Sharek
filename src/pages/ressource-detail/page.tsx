@@ -798,6 +798,9 @@ export default function ResourceDetail() {
                 resourceType={resource.type}
                 resourceTypeLabel={resource.type_label}
                 refreshKey={peerRefreshKey}
+                currentRound={(resource as Resource & { current_round?: number }).current_round || 1}
+                resourceFileUrl={resource.file_url}
+                resourceFileName={(resource as Resource & { file_name?: string }).file_name}
               />
             </div>
           </div>
