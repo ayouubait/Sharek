@@ -307,14 +307,41 @@ function RealPdfViewer({ url, title }: { url: string; title: string }) {
         </div>
       </div>
 
-      {/* Inline PDF iframe via Google Docs viewer */}
-      <div className="bg-slate-100 dark:bg-slate-900 h-[70vh] sm:h-[800px]">
+      {/* Desktop: inline PDF via Google Docs viewer. Mobile: explicit open/download buttons
+          because Google Docs Viewer routinely fails to render inside mobile webviews. */}
+      <div className="bg-slate-100 dark:bg-slate-900 h-[70vh] sm:h-[800px] hidden sm:block">
         <iframe
           src={gviewUrl}
           title={title}
           className="w-full h-full border-0"
           sandbox="allow-scripts allow-same-origin allow-popups"
         />
+      </div>
+      <div className="bg-slate-50 dark:bg-slate-900 p-6 flex flex-col items-center justify-center text-center sm:hidden">
+        <div className="w-14 h-14 rounded-full bg-red-50 dark:bg-red-900/30 flex items-center justify-center text-red-500 mb-3">
+          <i className="ri-file-pdf-2-line text-2xl" />
+        </div>
+        <p className="text-sm font-medium text-slate-800 dark:text-slate-100 mb-1">Aperçu PDF indisponible sur mobile</p>
+        <p className="text-xs text-slate-500 dark:text-slate-400 mb-4">Ouvre le document dans un nouvel onglet ou télécharge-le pour le lire.</p>
+        <div className="flex gap-2 w-full max-w-xs">
+          <a
+            href={url}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="flex-1 inline-flex items-center justify-center gap-2 px-3 py-2.5 text-sm font-medium text-white bg-sharek-600 hover:bg-sharek-700 rounded-lg transition-colors"
+          >
+            <i className="ri-external-link-line" />
+            Ouvrir
+          </a>
+          <a
+            href={url}
+            download
+            className="flex-1 inline-flex items-center justify-center gap-2 px-3 py-2.5 text-sm font-medium text-slate-700 dark:text-slate-200 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors"
+          >
+            <i className="ri-download-line" />
+            Télécharger
+          </a>
+        </div>
       </div>
     </div>
   );

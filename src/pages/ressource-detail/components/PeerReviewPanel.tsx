@@ -83,8 +83,17 @@ export default function PeerReviewPanel({ resourceId, resourceStatus, resourceAu
   const [submitRecLoading, setSubmitRecLoading] = useState(false);
   const [recFile, setRecFile] = useState<File | null>(null);
   const [reviewerProfiles, setReviewerProfiles] = useState<Record<string, { name: string; email: string; initials: string; color: string }>>({});
+  const [validationReports, setValidationReports] = useState<Array<{ id: string; reviewer_id: string; file_url?: string; file_name?: string; observations?: string; submitted_at: string }>>([]);
+  const [showVrForm, setShowVrForm] = useState(false);
+  const [vrFile, setVrFile] = useState<File | null>(null);
+  const [vrObservations, setVrObservations] = useState('');
+  const [submitVrLoading, setSubmitVrLoading] = useState(false);
 
   const myReview = localReviews.find((r) => r.reviewer_id === currentUserId);
+  const isAwaitingValidation = resourceStatus === 'awaiting_validation';
+  const myValidationReportSubmitted = validationReports.some((vr) => vr.reviewer_id === currentUserId);
+  const isReviewerEarly = localReviews.some((r) => r.reviewer_id === currentUserId);
+  const canSubmitValidationReport = isReviewerEarly && isAwaitingValidation && !myValidationReportSubmitted;
 
   // Build the progress steps dynamically from real review states
   const buildSteps = (): { label: string; icon: string; completed: boolean }[] => {
@@ -116,11 +125,19 @@ export default function PeerReviewPanel({ resourceId, resourceStatus, resourceAu
         icon: 'ri-file-list-3-line',
         completed: hasRecommendation,
       });
+
+      // Validation report step (per reviewer)
+      const vrSubmitted = validationReports.some((vr) => vr.reviewer_id === review.reviewer_id);
+      steps.push({
+        label: `${reviewerLabel} : ${vrSubmitted ? 'rapport de validation soumis' : 'rapport de validation en attente'}`,
+        icon: 'ri-shield-check-line',
+        completed: vrSubmitted,
+      });
     });
 
     steps.push({
-      label: 'Validation finale',
-      icon: 'ri-shield-check-line',
+      label: resourceStatus === 'peer_reviewed' ? 'Validation finale complétée' : 'Validation finale en attente',
+      icon: 'ri-award-line',
       completed: resourceStatus === 'peer_reviewed',
     });
 
@@ -206,6 +223,19 @@ export default function PeerReviewPanel({ resourceId, resourceStatus, resourceAu
 
     setLocalReviews(allReviews);
     setRecommendations(allRecs);
+
+    // Fetch validation reports for this resource
+    try {
+      const { data: vrData } = await supabase
+        .from('validation_reports')
+        .select('id, reviewer_id, file_url, file_name, observations, submitted_at')
+        .eq('resource_id', resourceId)
+        .order('submitted_at', { ascending: true });
+      if (vrData) setValidationReports(vrData);
+    } catch {
+      // ignore
+    }
+
     setIsLoading(false);
   }, [resourceId, isAdmin]);
 
@@ -226,6 +256,50 @@ export default function PeerReviewPanel({ resourceId, resourceStatus, resourceAu
       .subscribe();
     return () => { supabase.removeChannel(channel); };
   }, [resourceId, loadData]);
+
+  const handleSubmitValidationReport = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!user || !canSubmitValidationReport) return;
+    setSubmitVrLoading(true);
+
+    let fileUrl: string | null = null;
+    let fileName = vrFile?.name || 'rapport_validation.pdf';
+    if (vrFile) {
+      try {
+        const safeName = vrFile.name.replace(/[^a-zA-Z0-9._-]/g, '_');
+        const path = `${currentUserId}/${resourceId}/${Date.now()}_${safeName}`;
+        const { error: uploadError } = await withTimeout(
+          supabase.storage.from('validation-reports').upload(path, vrFile, { upsert: false }),
+          30000
+        );
+        if (!uploadError) {
+          const { data: pub } = supabase.storage.from('validation-reports').getPublicUrl(path);
+          fileUrl = pub?.publicUrl || null;
+        }
+      } catch {
+        // continue without file
+      }
+    }
+
+    try {
+      const { data, error } = await withTimeout(supabase.from('validation_reports').insert({
+        resource_id: resourceId,
+        reviewer_id: currentUserId,
+        file_url: fileUrl,
+        file_name: fileName,
+        observations: vrObservations,
+      }).select().single(), 15000);
+      if (!error && data) {
+        setValidationReports((prev) => [...prev, data]);
+        setShowVrForm(false);
+        setVrFile(null);
+        setVrObservations('');
+      }
+    } catch {
+      // ignore
+    }
+    setSubmitVrLoading(false);
+  };
 
   const handleBecomeReviewer = async () => {
     if (!user || isAuthor) return;
@@ -681,7 +755,7 @@ export default function PeerReviewPanel({ resourceId, resourceStatus, resourceAu
                 </div>
               )}
 
-              {myReview.status === 'recommendation_submitted' && (
+              {myReview.status === 'recommendation_submitted' && !canSubmitValidationReport && !myValidationReportSubmitted && (
                 <div className="flex items-center gap-2 text-sharek-700 bg-sharek-50 border border-sharek-200 rounded-md px-3 py-2.5">
                   <div className="w-4 h-4 flex items-center justify-center">
                     <i className="ri-checkbox-circle-line text-sm"></i>
@@ -689,7 +763,70 @@ export default function PeerReviewPanel({ resourceId, resourceStatus, resourceAu
                   <p className="text-xs font-medium">Recommandation soumise avec succès</p>
                 </div>
               )}
+
+              {canSubmitValidationReport && !showVrForm && (
+                <button
+                  onClick={() => setShowVrForm(true)}
+                  className="w-full mt-2 px-4 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-medium rounded-md transition-colors flex items-center justify-center gap-2"
+                >
+                  <i className="ri-shield-check-line"></i>
+                  Soumettre le rapport de validation final
+                </button>
+              )}
+
+              {myValidationReportSubmitted && (
+                <div className="flex items-center gap-2 text-emerald-700 bg-emerald-50 border border-emerald-200 rounded-md px-3 py-2.5">
+                  <div className="w-4 h-4 flex items-center justify-center">
+                    <i className="ri-shield-check-line text-sm"></i>
+                  </div>
+                  <p className="text-xs font-medium">Rapport de validation soumis. En attente du second reviewer pour finaliser.</p>
+                </div>
+              )}
             </div>
+          )}
+
+          {/* Validation report form */}
+          {showVrForm && canSubmitValidationReport && (
+            <form onSubmit={handleSubmitValidationReport} className="mt-3 p-4 rounded-lg border border-emerald-200 bg-emerald-50/30 space-y-3">
+              <div className="flex items-center justify-between">
+                <h4 className="text-sm font-semibold text-emerald-800">Rapport de validation final</h4>
+                <button type="button" onClick={() => setShowVrForm(false)} className="text-emerald-600 hover:text-emerald-800">
+                  <i className="ri-close-line text-lg"></i>
+                </button>
+              </div>
+              <p className="text-xs text-emerald-700">
+                Vous attestez que la ressource a été révisée et qu'elle répond aux critères de qualité. Joignez optionnellement un rapport PDF.
+              </p>
+              <div>
+                <label className="block text-xs font-medium text-slate-600 mb-1">Observations finales (optionnel)</label>
+                <textarea
+                  value={vrObservations}
+                  onChange={(e) => setVrObservations(e.target.value)}
+                  rows={3}
+                  className="w-full px-3 py-2 text-sm text-slate-800 bg-white border border-slate-200 rounded-md focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                  placeholder="Cette ressource est validée pour publication officielle..."
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-slate-600 mb-1">Rapport PDF (optionnel)</label>
+                <input
+                  type="file"
+                  accept=".pdf,image/*"
+                  onChange={(e) => setVrFile(e.target.files?.[0] || null)}
+                  className="w-full text-xs text-slate-600 file:mr-3 file:py-2 file:px-3 file:rounded-md file:border-0 file:text-xs file:font-medium file:bg-emerald-100 file:text-emerald-700 hover:file:bg-emerald-200"
+                />
+                {vrFile && (
+                  <p className="text-[11px] text-slate-500 mt-1 truncate">{vrFile.name} ({(vrFile.size / 1024).toFixed(0)} KB)</p>
+                )}
+              </div>
+              <button
+                type="submit"
+                disabled={submitVrLoading}
+                className="w-full px-4 py-2 text-sm font-medium text-white bg-emerald-600 hover:bg-emerald-700 disabled:bg-slate-300 rounded-md transition-colors flex items-center justify-center gap-2"
+              >
+                {submitVrLoading ? <><i className="ri-loader-4-line animate-spin"></i> Envoi...</> : <><i className="ri-send-plane-line"></i> Soumettre le rapport</>}
+              </button>
+            </form>
           )}
 
           {/* Author message */}

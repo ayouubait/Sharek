@@ -398,11 +398,18 @@ export default function ResourceDetail() {
   if (loading) {
     return (
       <MainLayout>
-        <div className="flex flex-col items-center justify-center py-24">
-          <div className="w-10 h-10 flex items-center justify-center">
-            <i className="ri-loader-4-line animate-spin text-ocean-500 text-3xl" />
+        <div className="space-y-4 max-w-5xl mx-auto animate-pulse">
+          {/* Title skeleton */}
+          <div className="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 p-5 space-y-3">
+            <div className="h-6 bg-slate-100 dark:bg-slate-700 rounded w-3/4" />
+            <div className="h-4 bg-slate-100 dark:bg-slate-700 rounded w-1/2" />
+            <div className="flex items-center gap-2 pt-2">
+              <div className="w-10 h-10 rounded-full bg-slate-100 dark:bg-slate-700" />
+              <div className="h-3 bg-slate-100 dark:bg-slate-700 rounded flex-1 max-w-[150px]" />
+            </div>
           </div>
-          <p className="text-sm text-slate-400 dark:text-slate-500 mt-4">Chargement de la ressource...</p>
+          {/* Document viewer skeleton */}
+          <div className="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 h-[60vh]" />
         </div>
       </MainLayout>
     );
